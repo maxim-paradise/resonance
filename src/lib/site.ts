@@ -128,3 +128,32 @@ export function formatDate(iso: string): string {
 }
 
 export const APP_NAME = 'Resonance';
+
+export const FALLBACK_VERSION = 'v2.4.1';
+
+import { useEffect, useState } from 'react';
+
+/** Live release tag: cached value instantly, GitHub refresh in background. */
+export function useLatestTag(fallback: string = FALLBACK_VERSION): string {
+  const [tag, setTag] = useState<string>(() => readCachedRelease()?.tag || fallback);
+  useEffect(() => {
+    let alive = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    fetchLatestRelease(controller.signal)
+      .then((info) => {
+        if (alive && info.tag) setTag(info.tag);
+      })
+      .catch(() => {
+        /* keep cached/fallback value */
+      })
+      .finally(() => clearTimeout(timeout));
+    return () => {
+      alive = false;
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
+  return tag;
+}
+

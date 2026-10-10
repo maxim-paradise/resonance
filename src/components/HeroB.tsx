@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Headphones, Menu, X } from 'lucide-react';
 import { APP_NAME } from '../lib/site';
-import { DOWNLOAD_HASH } from '../lib/site';
+import { DOWNLOAD_HASH, useLatestTag } from '../lib/site';
 
 const WORDMARK = `RESONANCE // PLAYER`;
 
@@ -124,6 +124,7 @@ const NAV_ITEMS = [
 export default function HeroB() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [play, setPlay] = useState(false);
+  const version = useLatestTag();
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -170,7 +171,7 @@ export default function HeroB() {
 
           <div className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right" style={{ animationDelay: '600ms' }}>
             <Headphones className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-            <span className="font-manrope text-white text-[13px] leading-[15.6px]">v2.4.1</span>
+            <span className="font-manrope text-white text-[13px] leading-[15.6px]">{version}</span>
             <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ CONNECTED ]</span>
             <span className="font-manrope text-white text-[13px] leading-[15.6px] ml-[20px]">STATUS:</span>
             <LiveSyncChip />
@@ -221,7 +222,7 @@ export default function HeroB() {
             >
               <div className="flex items-center gap-[10px] mb-3">
                 <Headphones className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-                <span className="font-manrope text-white text-[13px] leading-[15.6px]">v2.4.1</span>
+                <span className="font-manrope text-white text-[13px] leading-[15.6px]">{version}</span>
                 <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ CONNECTED ]</span>
               </div>
               <div className="flex items-center gap-[8px]">
