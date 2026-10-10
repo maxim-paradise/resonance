@@ -4,22 +4,28 @@ import Platforms from './components/Platforms';
 import SiteFooter from './components/SiteFooter';
 
 const DownloadPage = lazy(() => import('./components/DownloadPage'));
+const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
 
-function isDownloadHash() {
-  return window.location.hash.startsWith('#/download');
+type Route = 'home' | 'download' | 'privacy';
+
+function getRoute(): Route {
+  const h = window.location.hash;
+  if (h.startsWith('#/download')) return 'download';
+  if (h.startsWith('#/privacy')) return 'privacy';
+  return 'home';
 }
 
 export default function App() {
-  const [route, setRoute] = useState<'home' | 'download'>(() => (isDownloadHash() ? 'download' : 'home'));
+  const [route, setRoute] = useState<Route>(() => getRoute());
 
   useEffect(() => {
-    const onChange = () => setRoute(isDownloadHash() ? 'download' : 'home');
+    const onChange = () => setRoute(getRoute());
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
 
   useEffect(() => {
-    if (route === 'download') {
+    if (route !== 'home') {
       window.scrollTo(0, 0);
       return;
     }
@@ -35,6 +41,14 @@ export default function App() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-black" />}>
         <DownloadPage />
+      </Suspense>
+    );
+  }
+
+  if (route === 'privacy') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-black" />}>
+        <PrivacyPage />
       </Suspense>
     );
   }

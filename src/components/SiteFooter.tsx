@@ -36,7 +36,7 @@ export default function SiteFooter() {
         </div>
         <div className="site-footer__legal">
           <p>© 2026 {APP_NAME}. All rights reserved.</p>
-          <a href="#privacy">Privacy Policy</a>
+          <a href="#/privacy">Privacy Policy</a>
           <a href="#terms">Terms of Use</a>
         </div>
       </div>
