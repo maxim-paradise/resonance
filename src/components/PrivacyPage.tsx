@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { APP_NAME, GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, HOME_HASH } from '../lib/site';
+import { APP_NAME, GITHUB_ISSUES_URL, GITHUB_RELEASES_URL } from '../lib/site';
 import SiteFooter from './SiteFooter';
 
 const SECTIONS: { heading: string; body: string[] }[] = [
@@ -38,7 +38,8 @@ const SECTIONS: { heading: string; body: string[] }[] = [
   },
 ];
 
-export default function PrivacyPage() {
+export default function PrivacyPage({ root = '' }: { root?: string }) {
+  const homeHref = root ? './' : '#/';
   useEffect(() => {
     document.title = `Privacy Policy — ${APP_NAME}`;
     return () => {
@@ -50,7 +51,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-black text-white font-manrope">
       <header className="flex items-center px-5 md:px-[35px] py-5 md:py-[27px]">
         <a
-          href={HOME_HASH}
+          href={homeHref}
           className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap"
         >
           RESONANCE // PLAYER
@@ -59,7 +60,7 @@ export default function PrivacyPage() {
 
       <main className="w-full max-w-[760px] mx-auto px-5 pb-24 pt-10 md:pt-14">
         <a
-          href={HOME_HASH}
+          href={homeHref}
           className="inline-flex items-center gap-[8px] font-manrope text-white/60 text-[13px] leading-[15.6px] hover:text-[#AFDDFF] transition-colors mb-8"
         >
           <ArrowLeft className="w-[14px] h-[14px]" strokeWidth={1.5} />
@@ -107,7 +108,7 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <SiteFooter />
+      <SiteFooter root={root} />
     </div>
   );
 }
