@@ -4,22 +4,37 @@ import Platforms from './components/Platforms';
 import SiteFooter from './components/SiteFooter';
 
 const DownloadPage = lazy(() => import('./components/DownloadPage'));
-const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
 
-type Route = 'home' | 'download' | 'privacy';
+type Route = 'home' | 'download';
 
 function getRoute(): Route {
   const h = window.location.hash;
   if (h.startsWith('#/download')) return 'download';
-  if (h.startsWith('#/privacy')) return 'privacy';
   return 'home';
+}
+
+// The privacy policy lives at /privacy/ (static file: privacy/index.html).
+// If the main bundle boots with a privacy URL, the host served its SPA
+// fallback instead of the static file — forward to the trailing-slash URL.
+function redirectLegacyPrivacyUrls() {
+  if (window.location.hash.startsWith('#/privacy')) {
+    window.location.replace('/privacy/');
+    return;
+  }
+  if (window.location.pathname === '/privacy') {
+    window.location.replace('/privacy/');
+  }
 }
 
 export default function App() {
   const [route, setRoute] = useState<Route>(() => getRoute());
 
   useEffect(() => {
-    const onChange = () => setRoute(getRoute());
+    redirectLegacyPrivacyUrls();
+    const onChange = () => {
+      redirectLegacyPrivacyUrls();
+      setRoute(getRoute());
+    };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
@@ -41,14 +56,6 @@ export default function App() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-black" />}>
         <DownloadPage />
-      </Suspense>
-    );
-  }
-
-  if (route === 'privacy') {
-    return (
-      <Suspense fallback={<div className="min-h-screen bg-black" />}>
-        <PrivacyPage />
       </Suspense>
     );
   }
