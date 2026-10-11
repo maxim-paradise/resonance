@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Headphones, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { APP_NAME } from '../lib/site';
-import { DOWNLOAD_HASH, useLatestTag } from '../lib/site';
+import { DOWNLOAD_HASH } from '../lib/site';
+import { CrossPlatformNode, SoundCloudNode, YouTubeMusicNode } from './HeroNodes';
 
-const WORDMARK = `RESONANCE // PLAYER`;
+const WORDMARK = `RESONANCE PLAYER`;
 
-function LiveSyncChip() {
-  return (
-    <span className="font-manrope bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px] text-black text-[13px] leading-[15.6px]">LIVE_SYNC</span>
-  );
-}
-
-function NavItem({ number, label, href, delay }: { number: string; label: string; href: string; delay: number }) {
+function NavItem({ label, href, delay }: { number: string; label: string; href: string; delay: number }) {
   return (
     <div className="flex items-center gap-[3px] anim-fade-up" style={{ animationDelay: `${delay}ms` }}>
-      <span className="font-manrope text-[#AFDDFF]/80 text-[13px] leading-[15.6px]">{number}.</span>
       <a href={href} className="font-manrope text-white text-[13px] leading-[15.6px] cursor-pointer hover:text-[#AFDDFF] transition-colors">
         {label}
       </a>
@@ -80,7 +74,7 @@ function CentralNodes() {
   return (
     <div id="sources" className="absolute inset-0 pointer-events-none hidden md:block">
       {/* YOUTUBE_MUSIC */}
-      <div className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in top-[27%] left-[60%]" style={{ animationDelay: '1500ms' }} />
+      <YouTubeMusicNode />
       <div className="absolute top-[11%] left-[26%] anim-slide-left" style={{ animationDelay: '1100ms' }}>
         <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">[ YOUTUBE_MUSIC ]</span>
         <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[160px]">
@@ -88,7 +82,7 @@ function CentralNodes() {
         </p>
       </div>
       {/* SOUNDCLOUD */}
-      <div className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in top-[58%] left-[32%]" style={{ animationDelay: '1800ms' }} />
+      <SoundCloudNode />
       <div className="absolute top-[76%] left-[3%] anim-slide-left" style={{ animationDelay: '1400ms' }}>
         <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">[ SOUNDCLOUD ]</span>
         <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[160px]">
@@ -96,7 +90,7 @@ function CentralNodes() {
         </p>
       </div>
       {/* CROSS_PLATFORM */}
-      <div className="absolute w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in top-[63%] left-[50%]" style={{ animationDelay: '2100ms' }} />
+      <CrossPlatformNode />
       <div className="absolute top-[50%] left-[78%] anim-slide-right" style={{ animationDelay: '1700ms' }}>
         <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">[ CROSS_PLATFORM ]</span>
         <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[180px]">
@@ -124,7 +118,6 @@ const NAV_ITEMS = [
 export default function HeroB() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [play, setPlay] = useState(false);
-  const version = useLatestTag();
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -169,13 +162,16 @@ export default function HeroB() {
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right" style={{ animationDelay: '600ms' }}>
-            <Headphones className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-            <span className="font-manrope text-white text-[13px] leading-[15.6px]">{version}</span>
-            <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ CONNECTED ]</span>
-            <span className="font-manrope text-white text-[13px] leading-[15.6px] ml-[20px]">STATUS:</span>
-            <LiveSyncChip />
-          </div>
+          <a
+            href={DOWNLOAD_HASH}
+            className="hidden lg:flex items-center gap-[10px] ml-auto bg-[#AFDDFF] px-[20px] py-[12px] hover:bg-[#c8e8ff] transition-colors anim-slide-right"
+            style={{ animationDelay: '600ms' }}
+          >
+            <span className="text-black text-[16px] leading-none">✢</span>
+            <span className="font-manrope text-black text-[13px] leading-[15.6px] uppercase tracking-wide">
+              Download for Desktop
+            </span>
+          </a>
 
           <button
             type="button"
@@ -210,7 +206,6 @@ export default function HeroB() {
                   style={{ transitionDelay: menuOpen ? `${150 + i * 75}ms` : '0ms' }}
                 >
                   <a href={n.href} onClick={() => setMenuOpen(false)} className="flex items-center gap-3">
-                    <span className="font-manrope text-[#AFDDFF]/80 text-[14px] leading-[1]">{n.number}.</span>
                     <span className="font-manrope text-white text-[28px] leading-[1.2] tracking-tight">{n.label}</span>
                   </a>
                 </div>
@@ -220,15 +215,16 @@ export default function HeroB() {
               className={`mt-auto pt-10 border-t border-white/10 transition-all duration-500 ease-[cubic-bezier(0)] ${menuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               style={{ transitionDelay: menuOpen ? '450ms' : '0ms' }}
             >
-              <div className="flex items-center gap-[10px] mb-3">
-                <Headphones className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
-                <span className="font-manrope text-white text-[13px] leading-[15.6px]">{version}</span>
-                <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">[ CONNECTED ]</span>
-              </div>
-              <div className="flex items-center gap-[8px]">
-                <span className="font-manrope text-white text-[13px] leading-[15.6px]">STATUS:</span>
-                <LiveSyncChip />
-              </div>
+              <a
+                href={DOWNLOAD_HASH}
+                onClick={() => setMenuOpen(false)}
+                className="bg-[#AFDDFF] px-[20px] py-[12px] flex items-center justify-center gap-[10px]"
+              >
+                <span className="text-black text-[16px] leading-none">✢</span>
+                <span className="font-manrope text-black text-[13px] leading-[15.6px] uppercase tracking-wide">
+                  Download for Desktop
+                </span>
+              </a>
             </div>
           </div>
         </div>
@@ -243,18 +239,7 @@ export default function HeroB() {
         <GridLines />
         <CentralNodes />
 
-        <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0">
-          <a
-            href={DOWNLOAD_HASH}
-            className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up"
-            style={{ animationDelay: '900ms' }}
-          >
-            <span className="text-black text-[16px] leading-none">✢</span>
-            <span className="font-manrope text-black text-[12px] md:text-[13px] leading-[15.6px] uppercase tracking-wide">
-              Download for Desktop
-            </span>
-          </a>
-
+        <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex justify-end">
           <div className="relative max-w-[280px] hidden sm:block anim-slide-right" style={{ animationDelay: '1100ms' }}>
             <div className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-[10px]">
               NATIVE APP — NO BROWSER TAB

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, Download, ExternalLink, RefreshCw } from 'lucide-react';
 import { APP_NAME } from '../lib/site';
 import SiteFooter from './SiteFooter';
@@ -90,6 +90,64 @@ function Skeleton() {
   );
 }
 
+function Reveal({
+  children,
+  className = '',
+  delay = 0,
+  variant = 'fade-up',
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  variant?: 'fade-up' | 'fade-in' | 'left' | 'right' | 'scale';
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            setVisible(true);
+            io.disconnect();
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const anim =
+    variant === 'scale'
+      ? 'anim-scale-in'
+      : variant === 'left'
+        ? 'anim-slide-left'
+        : variant === 'right'
+          ? 'anim-slide-right'
+          : variant === 'fade-in'
+            ? 'anim-fade-in'
+            : 'anim-fade-up';
+
+  return (
+    <div
+      ref={ref}
+      className={`${visible ? anim : 'opacity-0'} ${className}`}
+      style={visible ? { animationDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function DownloadPage() {
   const [release, setRelease] = useState<ReleaseInfo | null>(() => readCachedRelease());
   const [failed, setFailed] = useState(false);
@@ -126,12 +184,12 @@ export default function DownloadPage() {
 
   return (
     <div className="min-h-screen bg-black text-white font-manrope">
-      <header className="flex items-center px-5 md:px-[35px] py-5 md:py-[27px]">
+      <header className="flex items-center px-5 md:px-[35px] py-5 md:py-[27px] anim-fade-in">
         <a
           href={HOME_HASH}
           className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap"
         >
-          RESONANCE // PLAYER
+          RESONANCE PLAYER
         </a>
         <a
           href={GITHUB_RELEASES_URL}
@@ -147,21 +205,22 @@ export default function DownloadPage() {
       <main className="w-full max-w-[920px] mx-auto px-5 pb-24 pt-10 md:pt-14">
         <a
           href={HOME_HASH}
-          className="inline-flex items-center gap-[8px] font-manrope text-white/60 text-[13px] leading-[15.6px] hover:text-[#AFDDFF] transition-colors mb-8"
+          className="inline-flex items-center gap-[8px] font-manrope text-white/60 text-[13px] leading-[15.6px] hover:text-[#AFDDFF] transition-colors mb-8 anim-fade-up"
+          style={{ animationDelay: '100ms' }}
         >
           <ArrowLeft className="w-[14px] h-[14px]" strokeWidth={1.5} />
           Back to home
         </a>
 
-        <h1 className="font-graphik font-normal text-white leading-[1em] text-[38px] md:text-[64px] mb-4">
+        <h1 className="font-graphik font-normal text-white leading-[1em] text-[38px] md:text-[64px] mb-4 anim-fade-up" style={{ animationDelay: '150ms' }}>
           Download for Desktop
         </h1>
-        <p className="font-manrope text-white/60 text-[14px] md:text-[15px] leading-[22px] max-w-[560px] mb-3">
+        <p className="font-manrope text-white/60 text-[14px] md:text-[15px] leading-[22px] max-w-[560px] mb-3 anim-fade-up" style={{ animationDelay: '250ms' }}>
           {APP_NAME} brings YouTube Music and SoundCloud into one native app for Windows, macOS and Linux.
           Builds below always come from the latest GitHub release.
         </p>
         {release && (
-          <p className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] mb-10">
+          <p className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] mb-10 anim-fade-in" style={{ animationDelay: '350ms' }}>
             {release.tag}
             {release.date ? ` · published ${formatDate(release.date)}` : ''}
           </p>
@@ -170,7 +229,7 @@ export default function DownloadPage() {
         {!release && !failed && <Skeleton />}
 
         {failed && !release && (
-          <div className="border border-white/15 p-6 md:p-8 mb-10">
+          <div className="border border-white/15 p-6 md:p-8 mb-10 anim-scale-in">
             <p className="font-manrope text-white text-[15px] leading-[22px] mb-2">
               Couldn&apos;t reach the GitHub release feed.
             </p>
@@ -205,6 +264,7 @@ export default function DownloadPage() {
         {picks && (
           <>
             {recommended && os && (
+              <Reveal variant="scale">
               <section aria-label="Recommended download" className="border border-[#AFDDFF] p-6 md:p-8 mb-6">
                 <p className="font-manrope text-black text-[12px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-4">
                   RECOMMENDED FOR YOUR {OS_META[os].title.toUpperCase()}
@@ -218,14 +278,16 @@ export default function DownloadPage() {
                 </p>
                 <AssetButton asset={recommended} label={`Download ${release?.tag ?? ''}`} primary />
               </section>
+              </Reveal>
             )}
 
             <div className="grid gap-4 md:grid-cols-3 mb-12">
-              {OS_ORDER.map((key) => {
+              {OS_ORDER.map((key, i) => {
                 const pick = picks[key];
                 if (!pick.primary) return null;
                 return (
-                  <section key={key} aria-label={`${OS_META[key].title} download`} className="border border-white/15 p-6 flex flex-col">
+                  <Reveal key={key} delay={i * 100} className="h-full">
+                  <section aria-label={`${OS_META[key].title} download`} className="border border-white/15 p-6 flex flex-col h-full">
                     <h2 className="font-graphik font-normal text-white text-[22px] leading-[1.1] mb-1">
                       {OS_META[key].title}
                     </h2>
@@ -244,10 +306,12 @@ export default function DownloadPage() {
                       )}
                     </div>
                   </section>
+                  </Reveal>
                 );
               })}
             </div>
 
+            <Reveal>
             <section id="requirements" className="border-t border-white/10 pt-10 mb-12 scroll-mt-6">
               <h2 className="font-graphik font-normal text-white text-[26px] md:text-[32px] leading-[1.1] mb-6">
                 System requirements
@@ -263,7 +327,9 @@ export default function DownloadPage() {
                 ))}
               </div>
             </section>
+            </Reveal>
 
+            <Reveal delay={100}>
             <section aria-label="More builds" className="mb-4">
               <div className="flex items-center gap-4 mb-4">
                 <h2 className="font-manrope text-white/80 text-[13px] leading-[15.6px] uppercase tracking-wide">
@@ -300,6 +366,7 @@ export default function DownloadPage() {
                 </p>
               )}
             </section>
+            </Reveal>
           </>
         )}
       </main>

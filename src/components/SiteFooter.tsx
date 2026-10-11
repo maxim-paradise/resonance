@@ -18,14 +18,11 @@ export default function SiteFooter({ root = '' }: { root?: string }) {
             <a href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">Changelog</a>
           </nav>
           <nav className="site-footer__nav" aria-label="Company links">
-            <a href={root ? './' : '#/'}>About</a>
             <a href={GITHUB_ISSUES_URL} target="_blank" rel="noreferrer">Support</a>
             <a href={`${GITHUB_REPO_URL}#readme`} target="_blank" rel="noreferrer">Docs</a>
-            <a href={root + '#contact'}>Contact Us</a>
           </nav>
           <nav className="site-footer__nav" aria-label="Social links">
             <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">GitHub</a>
-            <a href="https://x.com" target="_blank" rel="noreferrer">Follow Us on X</a>
           </nav>
         </div>
         <div className="site-footer__brand-row">
@@ -36,8 +33,8 @@ export default function SiteFooter({ root = '' }: { root?: string }) {
         </div>
         <div className="site-footer__legal">
           <p>© 2026 {APP_NAME}. All rights reserved.</p>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="#terms">Terms of Use</a>
+          <p className="site-footer__trademarks">YouTube, YouTube Music and SoundCloud are trademarks of their respective owners. Resonance is not affiliated with or endorsed by them.</p>
+          <a href="/privacy/">Privacy Policy</a>
         </div>
       </div>
     </footer>

@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { --accent: #AFDDFF; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 a { color: inherit; text-decoration: none; }
 html { background: #000; }
@@ -157,4 +158,61 @@ body { background: #000; overflow-x: hidden; }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .anim-fade-up,
+  .anim-fade-in,
+  .anim-slide-left,
+  .anim-slide-right,
+  .anim-scale-in,
+  .anim-grid-v,
+  .anim-grid-h,
+  .node-wave-bar,
+  .node-os-icon {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============ Hero nodes (source frames) ============ */
+.node-frame {
+  background: rgb(0 0 0 / 0.6);
+}
+.node-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgb(255 255 255 / 0.55);
+  border-style: solid;
+  border-width: 0;
+}
+.node-corner--tl { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.node-corner--tr { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+.node-corner--bl { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.node-corner--br { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+.node-caption {
+  font-family: 'Manrope', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+@media (min-width: 1024px) {
+  .node-caption { font-size: 9px; }
+}
+@keyframes nodeWave {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+.node-wave-bar {
+  transform-origin: bottom;
+  animation: nodeWave 3s ease-in-out infinite;
+}
+.node-os-icon {
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+.site-footer__trademarks {
+  flex-basis: 100%;
+  color: rgb(255 255 255 / 0.38);
 }
