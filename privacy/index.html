@@ -162,26 +162,43 @@
   <p class="meta">Resonance · rell.tech · Last updated: October 11, 2026</p>
 
   <section>
-    <p>Resonance ("the app", "we") is operated by [YOUR FULL NAME / COMPANY NAME] and available at <a href="https://rell.tech">https://rell.tech</a>. This policy explains what data the app accesses when you connect your Google Account, why it is needed, how it is protected, and how you can delete it.</p>
+    <p>Resonance ("the app", "we") is a desktop music player: one native app for listening to SoundCloud, Spotify and YouTube Music, with a single library, search and playback across services instead of switching between music tabs. The marketing site for the app is served at <a href="https://rell.tech">https://rell.tech</a>.</p>
+    <p>The app is operated by Maxim Resonance, based in Bratislava, Slovakia. Contact: <a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a>. This policy explains what data Resonance accesses when you connect your Google Account for the YouTube Music integration, why each piece is needed, where it is stored, and how you can delete it.</p>
+    <p>This policy covers the Resonance desktop app and this website. The website itself never asks for Google sign-in and never receives Google user data; only the desktop app does, and only after you explicitly sign in with Google and grant permission on Google's consent screen.</p>
   </section>
 
   <section>
     <h2 class="font-graphik">1. What we access</h2>
-    <p>The app only accesses Google user data after you sign in with Google and grant permission on Google's consent screen. We request the following scopes:</p>
+    <p>The app accesses Google user data only after you sign in with Google and grant permission on Google's consent screen. We request exactly the following scopes, and nothing else:</p>
     <div class="scroll">
     <table>
       <tr><th>Scope</th><th>Data</th><th>Why we need it</th></tr>
-      <tr><td><code>openid</code>, <code>email</code>, <code>profile</code></td><td>Your name, email address and profile picture</td><td>To sign you in and identify your account.</td></tr>
-      <tr><td>[ADD EACH ADDITIONAL SCOPE, e.g. <code>https://www.googleapis.com/auth/gmail.readonly</code>]</td><td>[WHAT DATA, e.g. email messages and metadata]</td><td>[EXACT FEATURE THAT NEEDS IT]</td></tr>
+      <tr><td><code>openid</code>, <code>email</code>, <code>profile</code></td><td>Google account ID, name, email address and profile picture, read from Google's userinfo endpoint</td><td>To sign you in, identify which Google account is connected, and show your account name and avatar in the app.</td></tr>
+      <tr><td><code>https://www.googleapis.com/auth/youtube.readonly</code></td><td>Read-only YouTube data: your liked videos, your own playlists and their contents, search results, video details (title, channel, duration, view and like counts, category), and public channel profiles you open (name, avatar, banner, subscriber and video counts, uploads)</td><td>To build your YouTube Music library in the app: the Liked section, your playlists, playlist tracks, search, track details and artist/channel pages. Playback itself needs no scope: audio URLs are resolved locally on your device through the bundled yt-dlp sidecar, not through the API.</td></tr>
     </table>
     </div>
-    <p>We request only the scopes necessary for the features described above, and nothing else.</p>
+    <p>We deliberately do not request write scopes. Concretely, <code>force-ssl</code> (which rating/like writes would need) is not requested, so the app cannot modify your YouTube likes or subscriptions. We do not read your subscriptions list at all.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">2. How we use Google user data</h2>
+    <h2 class="font-graphik">2. YouTube API data in detail</h2>
+    <p>When you use the YouTube Music integration, the app calls the YouTube Data API v3 with your access token for the following read-only operations, each tied to a visible feature:</p>
     <ul>
-      <li>We use Google user data only to provide and improve the user-facing features of Resonance that you request, as described in the table above.</li>
+      <li><code>videos.list</code> with <code>myRating=like</code>: your liked videos, shown as your Liked tracks. The music-only filter (category 10) is applied locally on your device.</li>
+      <li><code>playlists.list</code> with <code>mine=true</code>: your own playlists, shown in your library.</li>
+      <li><code>playlistItems.list</code>: the tracks inside a playlist you open.</li>
+      <li><code>search.list</code>: results for a search query you type.</li>
+      <li><code>videos.list</code> by video ID: details (title, channel, duration, views, likes) for tracks already listed.</li>
+      <li><code>channels.list</code>: public channel/artist pages you open (name, avatar, banner, subscriber and video counts, uploads playlist).</li>
+      <li>Google userinfo endpoint: your account ID, name, email and picture, shown as your connected YouTube Music profile.</li>
+    </ul>
+    <p>By using the YouTube Music integration you are also bound by the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>. Google's handling of your information is described in the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+  </section>
+
+  <section>
+    <h2 class="font-graphik">3. How we use Google user data</h2>
+    <ul>
+      <li>We use Google user data only to provide and improve the user-facing features of Resonance that you request, as described in sections 1 and 2 above.</li>
       <li>We do not use Google user data for advertising, and we do not sell it.</li>
       <li>We do not use Google user data to develop, improve or train generalized artificial intelligence or machine learning models.</li>
       <li>We do not allow humans to read your Google user data, except (a) with your explicit consent for specific items, (b) when necessary for security purposes such as investigating abuse, (c) to comply with applicable law, or (d) when the data is aggregated and anonymized for internal operations.</li>
@@ -189,57 +206,60 @@
   </section>
 
   <section>
-    <h2 class="font-graphik">3. Google API Services User Data Policy</h2>
+    <h2 class="font-graphik">4. Google API Services User Data Policy</h2>
     <p>Resonance's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">4. Sharing and disclosure</h2>
-    <p>We do not sell, rent or share your Google user data with third parties. Data is processed only by infrastructure providers that host the app on our behalf ([HOSTING/DATABASE PROVIDERS, e.g. Vercel, your database host]) and only to operate the service. We may disclose data if required by law.</p>
+    <h2 class="font-graphik">5. Sharing and disclosure</h2>
+    <p>We do not sell, rent or share your Google user data with third parties, and we operate no server that receives it. Requests go directly from the app on your device to Google's servers (YouTube Data API v3, the OAuth2 token endpoint and the userinfo endpoint).</p>
+    <p>The static website rell.tech is hosted on Vercel. Vercel only serves the static marketing pages and receives no Google user data from the app. We use no cloud database, no analytics SDK and no advertising provider: there is no Supabase, Neon, Postgres, Firebase or similar backend holding your Google data.</p>
+    <p>We may disclose data if required by applicable law.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">5. Storage, retention and security</h2>
+    <h2 class="font-graphik">6. Storage, retention and security</h2>
     <ul>
-      <li>Data is stored on [WHERE: e.g. a PostgreSQL database hosted by PROVIDER in REGION].</li>
-      <li>All data is transmitted over HTTPS/TLS. Access tokens and other credentials are stored [ENCRYPTED / SECURELY] and are accessible only to the app's backend.</li>
-      <li>[Choose and keep accurate: "We do not store the content of your Google data; it is fetched on request and processed in memory." OR "We store X for as long as your account is connected."]</li>
-      <li>Access to production systems is limited to the app's operator.</li>
+      <li>Google user data is stored only on your own device, in the app's local data directory (a folder named BetterSoundCloud inside your operating system's user config directory), in a file called <code>youtube.json</code>. It holds your YouTube access token, refresh token, expiry time, granted scope, and your Google profile fields (account ID, email, name, picture).</li>
+      <li>All communication with Google uses HTTPS/TLS. The token file is written with operating-system file permissions <code>0600</code> (readable and writable only by your user account). Tokens are not encrypted at rest beyond these file permissions, and we do not claim otherwise.</li>
+      <li>OAuth client ID and secret values you type yourself are kept in the app webview's localStorage so later token refreshes can reuse them; one-click bundled keys baked into release builds are held in memory only and are never written to any store. Tokens themselves are never kept in localStorage.</li>
+      <li>We store this data for as long as your YouTube Music account stays connected in the app. There is no other copy: no server copy, no backup, no analytics copy.</li>
+      <li>Access is limited to the app running on your device and to the app's sole operator (Maxim Resonance) for maintenance of the published software; no support staff, advertiser or analytics provider can access it.</li>
     </ul>
   </section>
 
   <section>
-    <h2 class="font-graphik">6. Deleting your data and revoking access</h2>
+    <h2 class="font-graphik">7. Deleting your data and revoking access</h2>
     <ul>
-      <li>You can revoke the app's access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
-      <li>To delete the data we hold, email <a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a> from your account address. We delete your data within 30 days of the request.</li>
-      <li>When you revoke access or delete your account, stored tokens and any Google user data are deleted.</li>
+      <li>In the app: disconnecting YouTube Music (Connected accounts / Settings sign-out) immediately deletes the stored session: the app clears its in-memory state and deletes the local <code>youtube.json</code> token file. Uninstalling the app and removing its BetterSoundCloud data directory removes the data from the device as well.</li>
+      <li>Google-side revocation: you can revoke the app's access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> and at <a href="https://security.google.com/settings/security/permissions">security.google.com/settings/security/permissions</a>. After revocation the stored refresh token can no longer be used.</li>
+      <li>Email request: to ask us to confirm deletion or for help removing data, email <a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a> from your account address. We respond and complete deletion of any data we hold within 30 days of the request. Because storage is local-only, deletion means confirming the local file is removed and the grant is revoked; there is no server copy to purge.</li>
     </ul>
   </section>
 
   <section>
-    <h2 class="font-graphik">7. Other data</h2>
-    <p>We may keep basic technical logs (such as IP address and request time) for security and debugging. These do not contain the content of your Google data and are kept for no longer than [30] days.</p>
+    <h2 class="font-graphik">8. Other data</h2>
+    <p>The Resonance desktop app includes no analytics SDK, no advertising SDK and no crash-reporting that sends Google user data anywhere. The static website collects no Google user data; it queries the public GitHub releases API only to display the latest download version. We operate no server-side request logs containing your Google data because we operate no server that receives it.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">8. Children</h2>
-    <p>The app is not intended for children under 16, and we do not knowingly collect their data.</p>
+    <h2 class="font-graphik">9. Children</h2>
+    <p>The app is not intended for children under 16, and we do not knowingly collect their data. If you believe a child has connected a Google Account, contact us at the email below and we will help remove the local data.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">9. Your rights</h2>
-    <p>Depending on where you live (including the EU/EEA under the GDPR), you may have the right to access, correct, export or delete your personal data, and to object to or restrict its processing. Contact us at the email below to exercise these rights.</p>
+    <h2 class="font-graphik">10. Your rights</h2>
+    <p>Depending on where you live (including the EU/EEA under the GDPR), you may have the right to access, correct, export or delete your personal data, and to object to or restrict its processing. Because your Google user data is stored on your device, you can directly inspect it in the app (connected profile, library) and delete it via in-app disconnect at any time. To exercise any of these rights with our assistance, contact <a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a> and we will respond within 30 days.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">10. Changes to this policy</h2>
+    <h2 class="font-graphik">11. Changes to this policy</h2>
     <p>If we change this policy, we will update the date above and publish the new version on this page. Material changes affecting Google user data will be communicated before they take effect.</p>
   </section>
 
   <section>
-    <h2 class="font-graphik">11. Contact</h2>
-    <p><a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a><br>Resonance, Bratislava, Slovakia</p>
+    <h2 class="font-graphik">12. Contact</h2>
+    <p>Operator: Maxim Resonance<br>Bratislava, Slovakia<br><a href="mailto:maximshool12@gmail.com">maximshool12@gmail.com</a></p>
   </section>
 
   <div class="links-row">
