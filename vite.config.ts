@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 
 // Dev-only: map clean URL /privacy to privacy/index.html
@@ -20,6 +21,11 @@ function cleanPrivacyUrl(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [react(), cleanPrivacyUrl()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   build: {
     rollupOptions: {
       input: {

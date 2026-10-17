@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import HeroB from './components/HeroB';
+import Header from './components/Header';
+import HeroSection from './components/HeroSection';
 import Platforms from './components/Platforms';
 import SiteFooter from './components/SiteFooter';
 
@@ -62,8 +63,9 @@ export default function App() {
 
   return (
     <>
+      <Header />
       <main>
-        <HeroB />
+        <HeroSection />
         <Platforms />
       </main>
       <SiteFooter />

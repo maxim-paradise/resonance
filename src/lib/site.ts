@@ -8,6 +8,9 @@ export const GITHUB_LATEST_API = `https://api.github.com/repos/${GITHUB_OWNER}/$
 export const DOWNLOAD_HASH = '#/download';
 export const HOME_HASH = '#/';
 
+// Public repository (used by the header GitHub icon).
+export const GITHUB_URL = GITHUB_REPO_URL;
+
 export interface ReleaseAsset {
   name: string;
   size: number;
