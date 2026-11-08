@@ -27,8 +27,7 @@ export default function SiteFooter({ root = '' }: { root?: string }) {
         </div>
         <div className="site-footer__brand-row">
           <a className="site-footer__brand" href={root ? root : HOME_HASH} aria-label={`${APP_NAME} home`}>
-            <span className="site-footer__mark" aria-hidden="true" />
-            <span>{APP_NAME}</span>
+            <img className="site-footer__mark" src="/app-icon.png" alt={`${APP_NAME} logo`} />
           </a>
         </div>
         <div className="site-footer__legal">

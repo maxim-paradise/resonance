@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000000">
+<link rel="icon" type="image/png" href="/app-icon.png">
 <title>Privacy Policy – Resonance</title>
 <meta name="description" content="Privacy Policy for Resonance, explaining how Google user data is accessed, used, stored and deleted.">
 <link href="https://db.onlinewebfonts.com/c/ca3d10781128664daddf89bf2e2d1305?family=Graphik+LCG+Regular+Regular" rel="stylesheet">
@@ -28,11 +29,20 @@
     padding: 20px;
   }
   header.site-head a.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     color: #fff;
     text-decoration: none;
     font-size: 18px;
     line-height: 21px;
     white-space: nowrap;
+  }
+  header.site-head a.brand img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: contain;
   }
   main {
     width: 100%;
@@ -151,7 +161,10 @@
 </head>
 <body>
 <header class="site-head">
-  <a class="brand font-graphik" href="/">RESONANCE // PLAYER</a>
+  <a class="brand font-graphik" href="/">
+    <img src="/app-icon.png" alt="Resonance logo">
+    <span>Resonance</span>
+  </a>
 </header>
 
 <main>

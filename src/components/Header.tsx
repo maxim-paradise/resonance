@@ -9,7 +9,6 @@ import {
 import { Github } from 'lucide-react';
 import { Button } from './ui/button';
 import { APP_NAME, DOWNLOAD_HASH, GITHUB_URL, HOME_HASH } from '../lib/site';
-import logo from '../assets/hero/logo.svg';
 
 const NAV_ITEMS = [
   { label: 'Home', href: HOME_HASH },
@@ -93,10 +92,10 @@ export default function Header() {
         <div className="flex items-center gap-12 md:gap-20">
           <a href={HOME_HASH} className="flex items-center gap-2">
             <motion.img
-              src={logo}
+              src="/app-icon.png"
               alt={`${APP_NAME} logo`}
               variants={logoVariants}
-              className="h-7 w-7"
+              className="h-7 w-7 rounded-md object-contain"
             />
             <motion.span
               variants={brandVariants}

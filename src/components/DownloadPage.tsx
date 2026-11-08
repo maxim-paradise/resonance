@@ -187,9 +187,10 @@ export default function DownloadPage() {
       <header className="flex items-center px-5 md:px-[35px] py-5 md:py-[27px] anim-fade-in">
         <a
           href={HOME_HASH}
-          className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap"
+          className="inline-flex items-center gap-2.5 font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap"
         >
-          RESONANCE PLAYER
+          <img src="/app-icon.png" alt={`${APP_NAME} logo`} className="h-7 w-7 rounded-md object-contain" />
+          <span>{APP_NAME}</span>
         </a>
         <a
           href={GITHUB_RELEASES_URL}

@@ -155,32 +155,14 @@ body { background: #000; overflow-x: hidden; }
 }
 .site-footer .site-footer__nav a:hover { color: #ffffff; transform: translateX(3px); }
 .site-footer .site-footer__brand-row { width: 100%; margin-top: clamp(18px, 3vw, 46px); }
-.site-footer .site-footer__brand { display: flex; align-items: center; width: 100%; color: #fff; }
+.site-footer .site-footer__brand { display: inline-flex; align-items: center; color: #fff; }
 .site-footer .site-footer__mark {
-  position: relative;
-  flex: 0 0 clamp(58px, 6.1vw, 118px);
-  aspect-ratio: 1;
-  margin-right: clamp(14px, 1.6vw, 28px);
-  overflow: hidden;
-  border-radius: 50%;
-  background: #ffffff;
-}
-.site-footer .site-footer__mark::before {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  background: #000000;
-  clip-path: polygon(0 20%, 100% 8%, 100% 19%, 0 31%, 0 43%, 100% 31%, 100% 42%, 0 54%, 0 66%, 100% 54%, 100% 65%, 0 77%);
-}
-.site-footer .site-footer__brand span:last-child {
   display: block;
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: clamp(58px, 11.1vw, 214px);
-  font-weight: 760;
-  letter-spacing: -0.055em;
-  line-height: 0.78;
-  white-space: nowrap;
+  flex: 0 0 clamp(58px, 6.1vw, 118px);
+  width: clamp(58px, 6.1vw, 118px);
+  height: clamp(58px, 6.1vw, 118px);
+  aspect-ratio: 1;
+  object-fit: contain;
 }
 .site-footer .site-footer__legal {
   display: flex;
@@ -205,8 +187,11 @@ body { background: #000; overflow-x: hidden; }
   .site-footer .site-footer__inner { width: min(100% - 32px, var(--hero-max-width)); }
   .site-footer .site-footer__top { grid-template-columns: 1fr; min-height: auto; }
   .site-footer .site-footer__nav a { font-size: 15px; }
-  .site-footer .site-footer__mark { flex-basis: clamp(38px, 12vw, 58px); }
-  .site-footer .site-footer__brand span:last-child { font-size: clamp(45px, 18vw, 84px); }
+  .site-footer .site-footer__mark {
+    flex-basis: clamp(38px, 12vw, 58px);
+    width: clamp(38px, 12vw, 58px);
+    height: clamp(38px, 12vw, 58px);
+  }
 }
 
 /* Smooth travel between linked sections (footer/nav/deep links) */

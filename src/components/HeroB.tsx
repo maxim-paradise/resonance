@@ -152,8 +152,9 @@ export default function HeroB() {
       <div className="relative z-10 w-full h-full">
         <nav className="absolute top-0 left-0 w-full flex items-center px-5 md:px-[35px] py-5 md:py-[27px]">
           <div className="flex items-center gap-[40px]">
-            <a href="#/" className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up" style={{ animationDelay: '200ms' }}>
-              {WORDMARK}
+            <a href="#/" className="inline-flex items-center gap-2.5 font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up" style={{ animationDelay: '200ms' }}>
+              <img src="/app-icon.png" alt={`${APP_NAME} logo`} className="h-7 w-7 rounded-md object-contain" />
+              <span>{WORDMARK}</span>
             </a>
             <div className="hidden lg:flex items-center gap-[40px]">
               {NAV_ITEMS.map((n) => (
