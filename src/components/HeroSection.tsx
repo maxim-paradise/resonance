@@ -2,10 +2,6 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform, type Variants } from 'framer-motion';
 import { Button } from './ui/button';
 import { APP_NAME, DOWNLOAD_HASH } from '../lib/site';
-import dashboard from '../assets/hero/dashboard.svg';
-
-const HERO_VIDEO =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4';
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -89,18 +85,10 @@ export default function HeroSection() {
         className="relative mt-16 w-screen"
         style={{ marginLeft: 'calc(-50vw + 50%)', aspectRatio: '16 / 9' }}
       >
-        <video
-          className="absolute inset-0 h-full w-full object-cover"
-          src={HERO_VIDEO}
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
         <motion.img
-          src={dashboard}
-          alt={`${APP_NAME} dashboard`}
-          style={{ y: dashboardY, x: '-50%', mixBlendMode: 'luminosity' }}
+          src="/hero.jpg"
+          alt={`${APP_NAME} music player interface`}
+          style={{ y: dashboardY, x: '-50%' }}
           className="absolute left-1/2 top-0 w-[90%] max-w-5xl rounded-2xl"
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-40 bg-gradient-to-t from-background to-transparent" />
