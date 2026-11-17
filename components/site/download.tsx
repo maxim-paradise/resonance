@@ -1,55 +1,37 @@
 'use client'
 
-import { Download as DownloadIcon, Laptop, Monitor, Terminal } from 'lucide-react'
+import Image from 'next/image'
 import { useI18n } from './i18n'
-import { GlassCard, REPO_URL, Reveal, SectionHeading } from './primitives'
+import { REPO_URL } from './primitives'
+import { Arrow, ButtonLink, Container } from './ui-bits'
 
 export function Download() {
   const { t } = useI18n()
 
   const platforms = [
     {
-      icon: Monitor,
       name: 'Windows',
-      detail: t.download.platforms.windowsDetail,
-      primary: {
-        label: t.download.platforms.windowsPrimary,
-        format: '.exe',
-        href: '/api/download?platform=windows-exe',
-      },
-      secondary: [
-        {
-          label: t.download.platforms.windowsSecondary,
-          href: '/api/download?platform=windows-msi',
-        },
-      ],
+      icon: '/icons/windows.svg',
+      invert: false,
+      detail: t.download.windowsDetail,
+      primary: { label: t.download.windowsPrimary, href: '/api/download?platform=windows-exe' },
+      also: [{ label: '.msi', href: '/api/download?platform=windows-msi' }],
     },
     {
-      icon: Laptop,
       name: 'macOS',
-      detail: t.download.platforms.macosDetail,
-      primary: {
-        label: t.download.platforms.macosPrimary,
-        format: '.dmg',
-        href: '/api/download?platform=macos-arm64',
-      },
-      secondary: [
-        {
-          label: t.download.platforms.macosSecondary,
-          href: '/api/download?platform=macos-x64',
-        },
-      ],
+      icon: '/icons/apple.svg',
+      invert: true,
+      detail: t.download.macosDetail,
+      primary: { label: t.download.macosPrimary, href: '/api/download?platform=macos-arm64' },
+      also: [{ label: t.download.macIntel, href: '/api/download?platform=macos-x64' }],
     },
     {
-      icon: Terminal,
       name: 'Linux',
-      detail: t.download.platforms.linuxDetail,
-      primary: {
-        label: t.download.platforms.linuxPrimary,
-        format: '.AppImage',
-        href: '/api/download?platform=linux-appimage',
-      },
-      secondary: [
+      icon: '/icons/linux-tux.svg',
+      invert: false,
+      detail: t.download.linuxDetail,
+      primary: { label: t.download.linuxPrimary, href: '/api/download?platform=linux-appimage' },
+      also: [
         { label: '.deb', href: '/api/download?platform=linux-deb' },
         { label: '.rpm', href: '/api/download?platform=linux-rpm' },
       ],
@@ -57,76 +39,52 @@ export function Download() {
   ]
 
   return (
-    <section id="download" className="relative mx-auto max-w-6xl scroll-mt-24 px-6 py-24 md:py-32">
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 top-1/2 -z-10 h-80 -translate-y-1/2 bg-[radial-gradient(50%_50%_at_50%_50%,oklch(0.5_0.08_45/28%),transparent_70%)] blur-2xl"
-      />
-      <SectionHeading
-        eyebrow={t.download.eyebrow}
-        title={t.download.title}
-        description={t.download.description}
-        align="center"
-      />
+    <section id="download" aria-labelledby="download-h" className="relative overflow-clip py-24 md:py-32">
+      {/* the site's own artwork: dunes under a column of light */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+        <Image src="/images/hero-dunes.png" alt="" fill className="object-cover object-[50%_60%] opacity-55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/60 to-background" />
+      </div>
 
-      <ul className="mt-12 grid gap-4 md:grid-cols-3">
-        {platforms.map(({ icon: Icon, name, detail, primary, secondary }, index) => (
-          <li key={name}>
-            <Reveal delay={100 + index * 100} className="h-full">
-              <GlassCard className="flex h-full flex-col p-6">
-                <div className="flex items-center justify-between">
-                  <span className="grid size-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-primary">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
-                    {primary.format}
-                  </span>
+      <Container>
+        <div className="max-w-[640px]">
+          <h2 id="download-h" className="font-display text-[32px] leading-[1.05] font-medium tracking-[-0.04em] md:text-[48px]">
+            {t.download.title}
+          </h2>
+          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{t.download.lead}</p>
+        </div>
+
+        <ul className="mt-12 grid gap-4 md:mt-16 md:grid-cols-3">
+          {platforms.map((p) => (
+            <li key={p.name} className="flex flex-col gap-6 rounded-[24px] border border-[var(--line-strong)] bg-[#140c0b]/90 p-6 backdrop-blur md:p-8">
+              <div className="flex items-center gap-4">
+                <Image src={p.icon} alt="" width={36} height={36} className={p.invert ? 'size-9 invert' : 'size-9'} />
+                <div>
+                  <h3 className="text-xl font-medium tracking-tight">{p.name}</h3>
+                  <p className="text-sm text-muted-foreground">{p.detail}</p>
                 </div>
-                <h3 className="mt-5 text-xl font-semibold tracking-tight">{name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-                <a
-                  href={primary.href}
-                  download
-                  className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
-                >
-                  <DownloadIcon className="size-4" aria-hidden="true" />
-                  {primary.label}
-                </a>
-                {secondary.length > 0 && (
-                  <div className="mt-3.5 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
-                    <span>{t.download.also}</span>
-                    {secondary.map((alt) => (
-                      <a
-                        key={alt.href}
-                        href={alt.href}
-                        download
-                        className="font-mono text-foreground/80 underline underline-offset-4 transition-colors hover:text-primary"
-                      >
-                        {alt.label}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </GlassCard>
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+              </div>
+              <ButtonLink href={p.primary.href} className="mt-auto w-full justify-between">
+                {p.primary.label}
+                <Arrow />
+              </ButtonLink>
+              <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <span>{t.download.also}:</span>
+                {p.also.map((a) => (
+                  <a key={a.href} href={a.href} className="text-foreground underline decoration-white/30 underline-offset-4 hover:decoration-accent">
+                    {a.label}
+                  </a>
+                ))}
+              </p>
+            </li>
+          ))}
+        </ul>
 
-      <Reveal delay={350}>
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          {t.download.sourcePrefix}{' '}
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="text-foreground underline underline-offset-4 hover:text-primary"
-          >
-            {t.download.sourceLink}
-          </a>
-          .
-        </p>
-      </Reveal>
+        <a href={REPO_URL} target="_blank" rel="noreferrer" className="group mt-8 inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground">
+          {t.download.source}
+          <Arrow />
+        </a>
+      </Container>
     </section>
   )
 }

@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en" data-type="software" data-radius="round" data-ground="sand" data-buttons="arrow" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resonance: desktop player for SoundCloud and YouTube Music</title>
+<meta name="description" content="A native player for Windows, macOS and Linux that puts your SoundCloud likes and YouTube Music playlists in one window. Free and open source.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Resonance: desktop player for SoundCloud and YouTube Music">
+<meta property="og:description" content="Both libraries in one native window, with synced lyrics, a 10-band equalizer and crossfade.">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f7eee9">
+<!-- <link rel="canonical" href="https://[the client's domain]/"> -->
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,400..600&family=Geist+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #f7eee9; --p-surface: #efe0d8; --p-ink: #2a1511; --p-muted: #725f5a;
+  --p-accent: #d4162f; --p-accent-ink: #f7eee9; --p-action: #d4162f; --p-action-ink: #f7eee9;
+  --p-inv-bg: #2a1511; --p-inv-surface: #37211d; --p-inv-ink: #f7eee9; --p-inv-muted: #a3938e;
+  --p-inv-accent: #f7eee9; --p-inv-accent-ink: #2a1511; --p-inv-action: #f7eee9; --p-inv-action-ink: #2a1511;
+  --font-display: "Mona Sans", system-ui, sans-serif;
+  --font-text: "Mona Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.03em;
+  --display-tracking-xl: -0.04em;
+  --display-stretch: 104%;
+  --ly-scale: 0.96;
+}
+</style>
+<link rel="stylesheet" href="assets/ui/base.css">
+<link rel="stylesheet" href="assets/ui/slider/fragment.css">
+<link rel="stylesheet" href="assets/ui/toggles/fragment.css">
+<link rel="stylesheet" href="assets/ui/notify/fragment.css">
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script src="assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/word-highlight/moment.js">
+<style>
+  /* hero: the real app screenshot is the window, cut by the frame's right and bottom edges */
+  .hero__art .shot { height: calc(100% - var(--s-8) + 28px); border-radius: var(--r-md); overflow: hidden; border: 1px solid rgba(42,21,17,.18); box-shadow: 0 24px 60px -24px rgba(42,21,17,.55); background: #1a0d0b; }
+  .hero__art .shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 0 0; max-width: none; }
+  @media (max-width: 1023px) { .hero__art .shot { height: auto; } .hero__art .shot img { height: auto; } }
+  .hero__art .np { left: calc(var(--s-8) + var(--s-4)); bottom: var(--s-6); width: 300px; display: grid; grid-template-columns: 56px 1fr; gap: var(--s-3); align-items: center; padding: var(--s-3); border-radius: var(--r-md); background: var(--p-bg); color: var(--p-ink); box-shadow: 0 16px 40px -16px rgba(42,21,17,.5); }
+  .hero__art .np img { width: 56px; height: 56px; border-radius: var(--r-sm); object-fit: cover; display: block; }
+  .hero__art .np b { display: block; font-weight: 500; font-size: 15px; line-height: 20px; }
+  .hero__art .np small { display: block; color: var(--p-muted); font-size: 13px; line-height: 18px; }
+  .hero__art .np .np__line { grid-column: 1 / -1; margin: 0; font-size: 15px; line-height: 22px; color: var(--p-ink); }
+  .hero__art .np .np__line span { color: var(--p-accent); }
+
+  /* the app window across the wrap: a real screenshot, cut under its fade */
+  .appwin { position: relative; margin-top: var(--s-7); border-radius: var(--r-lg); overflow: hidden; border: 1px solid rgba(42,21,17,.2); background: #1a0d0b; box-shadow: 0 32px 80px -32px rgba(42,21,17,.6); }
+  .appwin img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; max-width: none; }
+  .appwin::after { content: ""; position: absolute; inset: auto 0 0 0; height: 64px; background: linear-gradient(transparent, rgba(26,13,11,.9)); pointer-events: none; }
+
+  /* feature panels */
+  #sound .panel { --p-h: 300px; }
+  @media (max-width: 639px) { #sound .panel { --p-h: 180px; } }
+
+  /* themes: three crops of the real app in three palettes */
+  .wall--themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; border-radius: var(--r-lg); overflow: hidden; height: 500px; }
+  .wall--themes img { width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; }
+  @media (max-width: 639px) { .wall--themes { grid-template-columns: 1fr; height: auto; } .wall--themes img { height: 170px; } }
+
+  /* setup panels */
+  #setup .panel { --p-h: 260px; display: grid; place-items: center; }
+  .src-pair { display: flex; gap: var(--s-6); align-items: center; }
+  .src-pair .ic { width: 64px; height: 64px; object-fit: contain; }
+  .covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3); padding: var(--s-6); width: 100%; }
+  .covers img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); display: block; }
+  .cover-big { background: #fffeff; border-radius: var(--r-md); display: grid; grid-template-columns: 96px 1fr; gap: var(--s-4); align-items: center; padding: var(--s-4); width: calc(100% - 48px); }
+  .cover-big img { width: 96px; height: 96px; border-radius: var(--r-md); object-fit: cover; display: block; }
+  .cover-big p { margin: 0; line-height: 24px; }
+  .cover-big .dim { color: var(--p-muted); }
+  .cover-big .now { color: var(--p-accent); font-weight: 500; }
+  @media (max-width: 639px) { #setup .panel { --p-h: 260px; } .cover-big { grid-template-columns: 72px 1fr; padding: var(--s-4); } .cover-big img { width: 72px; height: 72px; } }
+
+  @media (max-width: 1023px) { .hero__art .np { display: none; } }
+  @media (min-width: 640px) and (max-width: 1023px) { #setup { --h: 2; } }
+
+  /* the large close button keeps its label inside a 320px screen */
+  @media (max-width: 479px) { .btn--xl.btn--wide { padding-inline: var(--s-4); } }
+
+  /* download rows */
+  #download .rows .rows__name { display: flex; align-items: center; gap: var(--s-3); }
+  #download .rows .rows__name img { width: 32px; height: 32px; object-fit: contain; }
+  #download .rows p { margin: 0; grid-column: 1 / -1; }
+  #download .dl-visual { height: 640px; align-self: start; }
+  #download .dl-visual img { object-position: 50% 60%; }
+  @media (max-width: 639px) { #download .dl-visual { height: 240px; } }
+</style>
+</head>
+<body>
+<!-- type: software
+     deal: hero collage (real app screenshot as the window), nav nav-mega, footer footer-columns, close close-type, rhythm surface-pairs (#window + #sound), buttons arrow, mark stack (the client's own app icon replaces it), grounds none
+     palette: the client's own colours through start.mjs brand (the crimson theme of the app: warm putty ground, ink brown, crimson accent), type mona + geist mono, radius round
+     moments: word-highlight in #about -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Skip to content</a>
+    <a class="nav__logo" href="#top"><img src="img/icon.svg" alt="" width="28" height="28" style="border-radius:8px">Resonance</a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item"><a class="nav__link" href="#window">Library</a></div>
+      <div class="nav__item">
+        <a class="nav__link" href="#sound">Sound <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <div class="menu-col span-3">
+              <p class="t-label">Audio</p>
+              <a href="#sound">Equalizer<span>Ten bands and presets</span></a>
+              <a href="#sound">Crossfade<span>Blend tracks, set the fade</span></a>
+              <a href="#sound">Normalization<span>One loudness for every track</span></a>
+            </div>
+            <div class="menu-col span-3">
+              <p class="t-label">App</p>
+              <a href="#sound">Updates<span>Signed releases from the sidebar</span></a>
+              <a href="#themes">Themes<span>Colours from the artwork</span></a>
+            </div>
+            <a class="menu-card span-3 start-10" href="#themes">
+              <div class="panel"><img class="frame__img" src="img/resonance-teal.jpg" alt="Resonance in the teal theme: library, lyrics and player bar" style="object-position: 100% 0"></div>
+              <span class="t-card">Themes</span>
+              <span class="t-small muted">The window takes its colours from the cover</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#themes">Themes</a></div>
+      <div class="nav__item"><a class="nav__link" href="#setup">Setup</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="#download">Download Resonance<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO: collage. The window is the client's real screenshot (crimson theme); the small card is the now-playing line -->
+  <section class="hero hero--collage" data-enter aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text grid hero__grid">
+      <div class="hero__text span-5">
+        <h1 id="hero-h">Desktop player for SoundCloud and YouTube Music</h1>
+        <p class="hero__lead">Resonance puts your SoundCloud likes and YouTube Music playlists in one native window, with synced lyrics, a 10-band equalizer and crossfade.</p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="#download">Download Resonance<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+          <a class="btn btn--secondary" href="#setup">See how it works</a>
+        </div>
+        <p class="hero__proof">Free and open source for Windows, macOS and Linux.</p>
+      </div>
+      <div class="hero__art span-6 start-7">
+        <div class="ly-piece ly-piece--main shot">
+          <img src="img/resonance-crimson.jpg" alt="Resonance in the crimson theme: SoundCloud and YouTube Music playlists, synced lyrics and the player bar" width="1280" height="673" fetchpriority="high" data-source="client" data-subject="the Resonance app">
+        </div>
+        <div class="ly-piece ly-piece--note np" aria-hidden="true">
+          <img src="img/tracks/prava.png" alt="">
+          <span><b>права</b><small>ooes · SoundCloud</small></span>
+          <p class="np__line"><span>Я же права, скажи им</span></p>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- APP-FRAME: the product big, the client's own window -->
+  <section class="section ground-surface" id="window" aria-labelledby="window-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="section-head span-5"><h2 id="window-h">Both music libraries in one window</h2></div>
+        <div class="span-6 start-7"><p class="t-lead">SoundCloud playlists sit above your YouTube Music library. Lyrics follow the track on the right, and the player bar stays at the foot.</p></div>
+      </div>
+      <div class="appwin fill">
+        <img src="img/resonance-app.jpg" alt="Resonance home screen: SoundCloud library, YouTube Music library, lyrics for the playing track and the player bar" width="1280" height="673" loading="lazy" data-source="client" data-subject="the Resonance app">
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES 2x2 -->
+  <section class="section ground-surface g2" id="sound" aria-labelledby="sound-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="section-head">
+          <h2 id="sound-h">Shape the sound of your music. <span class="muted">Equalizer, crossfade and loudness work on both libraries.</span></h2>
+        </div>
+        <div class="grid">
+          <article class="card card--row card--open span-6">
+            <h3>Shape your music band by band</h3>
+            <p>Ten bands, with presets for flat, bass boost, vocal and bright.</p>
+            <div class="panel">
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:288px;--ax:max(24px, 50% - 144px);--ay:40px;--ay-sm:16px" data-ui-loop>
+                <div class="ui ui-panel ui-slider" data-ui="slider">
+                  <div class="ui-slider__head">
+                    <span class="ui-slider__ico" aria-hidden="true"><svg viewBox="0 0 16 16"><circle cx="4" cy="4" r="1.1"/><circle cx="8" cy="4" r="1.1"/><circle cx="12" cy="4" r="1.1"/><circle cx="4" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12" cy="8" r="1.1"/><circle cx="4" cy="12" r="1.1"/><circle cx="8" cy="12" r="1.1"/><circle cx="12" cy="12" r="1.1"/></svg></span>
+                    <span class="ui-slider__name"><span class="ui-title">Equalizer</span><span class="ui-meta">10 bands</span></span>
+                    <span class="ui-spacer"></span>
+                    <span class="ui-slider__reset">Reset</span>
+                  </div>
+                  <div class="ui-slider__row">
+                    <div class="ui-slider__top"><span>60 Hz</span><output data-slider-val>4 dB</output></div>
+                    <div class="ui-slider__track" data-slider-track style="--v:0.62"><i class="ui-slider__fill"></i><i class="ui-slider__thumb"></i></div>
+                  </div>
+                  <div class="ui-slider__row">
+                    <div class="ui-slider__top"><span>1 kHz</span><output>0 dB</output></div>
+                    <div class="ui-slider__track" style="--v:0.5"><i class="ui-slider__fill"></i><i class="ui-slider__thumb"></i></div>
+                  </div>
+                  <div class="ui-slider__seg" role="group" aria-label="Preset">
+                    <span>Flat</span><span class="is-on">Bass boost</span><span>Vocal</span>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+          <article class="card card--row card--open span-6">
+            <h3>Crossfade music between tracks</h3>
+            <p>Set the fade length, or turn crossfade off.</p>
+            <div class="panel">
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:288px;--ax:max(24px, 50% - 144px);--ay:40px;--ay-sm:16px">
+                <div class="ui ui-panel ui-slider" data-ui="slider">
+                  <div class="ui-slider__head">
+                    <span class="ui-slider__ico" aria-hidden="true"><svg viewBox="0 0 16 16"><circle cx="4" cy="4" r="1.1"/><circle cx="8" cy="4" r="1.1"/><circle cx="12" cy="4" r="1.1"/><circle cx="4" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12" cy="8" r="1.1"/><circle cx="4" cy="12" r="1.1"/><circle cx="8" cy="12" r="1.1"/><circle cx="12" cy="12" r="1.1"/></svg></span>
+                    <span class="ui-slider__name"><span class="ui-title">Crossfade</span><span class="ui-meta">Between tracks</span></span>
+                    <span class="ui-spacer"></span>
+                    <span class="ui-slider__reset">Off</span>
+                  </div>
+                  <div class="ui-slider__row">
+                    <div class="ui-slider__top"><span>Fade length</span><output>6 s</output></div>
+                    <div class="ui-slider__track" style="--v:0.5"><i class="ui-slider__fill"></i><i class="ui-slider__thumb"></i></div>
+                  </div>
+                  <div class="ui-slider__row">
+                    <div class="ui-slider__top"><span>Next track</span><output>Starts at 6 s</output></div>
+                    <div class="ui-slider__track" style="--v:0.5"><i class="ui-slider__fill"></i><i class="ui-slider__thumb"></i></div>
+                  </div>
+                  <div class="ui-slider__seg" role="group" aria-label="Fade">
+                    <span>Off</span><span class="is-on">6 s</span><span>12 s</span>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-6">
+          <h3>Balance loud and quiet music</h3>
+          <p>Pick quiet, standard or loud. A limiter stops peaks from clipping.</p>
+          <div class="panel">
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:380px;--ax:max(24px, 50% - 190px);--ay:32px;--ay-sm:16px">
+              <div class="ui ui-panel ui-toggles" data-ui="toggles">
+                <div class="ui-head">
+                  <svg class="ui-icon ui-toggles__ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 13 4v3.6c0 3-2.1 5.4-5 6.6-2.9-1.2-5-3.6-5-6.6V4z"/><path d="m5.8 8 1.6 1.6 3-3.2"/></svg>
+                  <div class="ui-title">Audio normalization</div>
+                  <span class="ui-spacer"></span>
+                  <div class="ui-meta" data-tg-count>2 of 3 on</div>
+                </div>
+                <ul class="ui-toggles__list">
+                  <li class="ui-tg"><span class="ui-tg__text"><span class="ui-tg__label">Normalize loudness</span><span class="ui-tg__sub">Standard, -14 LUFS</span></span><button class="ui-switch is-on" type="button" role="switch" aria-checked="true" aria-label="Normalize loudness"><i></i></button></li>
+                  <li class="ui-tg"><span class="ui-tg__text"><span class="ui-tg__label">Limiter</span><span class="ui-tg__sub">No clipping or distortion</span></span><button class="ui-switch is-on" type="button" role="switch" aria-checked="true" aria-label="Limiter"><i></i></button></li>
+                  <li class="ui-tg"><span class="ui-tg__text"><span class="ui-tg__label">Loud target</span><span class="ui-tg__sub">-11 LUFS</span></span><button class="ui-switch" type="button" role="switch" aria-checked="false" aria-label="Loud target"><i></i></button></li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open span-6">
+          <h3>Update the player from the sidebar</h3>
+          <p>Resonance checks signed GitHub releases in the background, then restarts into the new build.</p>
+          <div class="panel">
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:380px;--ax:max(24px, 50% - 190px);--ay:calc(100% - 180px);--ay-sm:calc(100% - 180px)">
+              <div class="ui ui-notify" data-ui="notify">
+                <ul class="ui-notify__list" data-notify-list>
+                  <li class="ui-note"><span class="ui-note__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 11V3M4.8 7.8 8 11l3.2-3.2M3 13.5h10"/></svg></span><span class="ui-note__text"><span class="ui-note__title">Update ready<time>now</time></span><span class="ui-note__body">The signed build is downloaded</span></span><span class="ui-btn ui-btn--sm ui-note__btn">Restart</span></li>
+                  <li class="ui-note"><span class="ui-note__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="m3.5 8.4 2.8 2.8 6.2-6.4"/></svg></span><span class="ui-note__text"><span class="ui-note__title">Checked for updates<time>1h</time></span><span class="ui-note__body">GitHub Releases</span></span></li>
+                  <li class="ui-note"><span class="ui-note__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="m3.5 8.4 2.8 2.8 6.2-6.4"/></svg></span><span class="ui-note__text"><span class="ui-note__title">Library synced<time>2h</time></span><span class="ui-note__body">SoundCloud and YouTube Music</span></span></li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOMENT: word-highlight -->
+  <section class="section statement" id="about" data-moment="word-highlight" aria-label="About Resonance">
+    <div class="wrap">
+      <p class="t-label">About</p>
+      <p class="mo-wh__text">Resonance is a native desktop player for people who keep their underground tracks on SoundCloud and their main library on YouTube Music, and want both in <strong>one window</strong>.</p>
+    </div>
+  </section>
+
+  <!-- THEMES: a picture wall of three crops of the real app, one per palette -->
+  <section class="section" id="themes" aria-labelledby="themes-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="themes-h">Player colours that follow the artwork. <span class="muted">Or lock the window to a palette you choose.</span></h2>
+      </div>
+      <div class="wall wall--themes">
+        <img src="img/resonance-app.jpg" alt="The Resonance sidebar and player bar in the warm theme" loading="lazy" style="object-position: 0 100%">
+        <img src="img/resonance-crimson.jpg" alt="The Resonance lyrics panel in the crimson theme" loading="lazy" style="object-position: 100% 30%">
+        <img src="img/resonance-teal.jpg" alt="The Resonance playlists and search bar in the teal theme" loading="lazy" style="object-position: 30% 5%">
+      </div>
+    </div>
+  </section>
+
+  <!-- STEPS -->
+  <section class="section ground-surface" id="setup" style="--hm: 2" aria-labelledby="setup-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="setup-h">Set up the music player in 3 steps. <span class="muted">Under a minute from install to the first track.</span></h2>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-4">
+          <span class="step-num">1</span>
+          <h3>Connect SoundCloud and YouTube Music</h3>
+          <p>Sign in to both services inside the app.</p>
+          <div class="panel"><div class="src-pair">
+            <img class="ic" src="assets/icons/soundcloud.svg" alt="SoundCloud">
+            <img class="ic" src="assets/icons/youtubemusic.svg" alt="YouTube Music">
+          </div></div>
+        </article>
+        <article class="card card--row card--open span-4">
+          <span class="step-num">2</span>
+          <h3>Browse one music sidebar</h3>
+          <p>Playlists and likes from both services sit in one tree.</p>
+          <div class="panel"><div class="covers">
+            <img src="img/playlists/vajbik.png" alt="" loading="lazy"><img src="img/playlists/stalker.png" alt="" loading="lazy"><img src="img/playlists/dm.png" alt="" loading="lazy">
+            <img src="img/playlists/p1448.png" alt="" loading="lazy"><img src="img/playlists/hardstyle.png" alt="" loading="lazy"><img src="img/playlists/johan.png" alt="" loading="lazy">
+          </div></div>
+        </article>
+        <article class="card card--row card--open span-4">
+          <span class="step-num">3</span>
+          <h3>Queue music from both services</h3>
+          <p>Lyrics and a waveform scrubber follow the track.</p>
+          <div class="panel"><div class="cover-big">
+            <img src="img/tracks/miura.png" alt="" loading="lazy">
+            <div><p class="now">BATO · Miura</p><p class="dim">Next line</p><p>Lyrics scroll in time</p></div>
+          </div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section class="section" id="download" aria-labelledby="download-h">
+    <div class="wrap">
+      <div class="grid grid--top">
+        <div class="span-6">
+      <div class="section-head">
+        <h2 id="download-h">Download Resonance for your desktop</h2>
+        <p>Free and open source. Installers come from the latest signed GitHub release.</p>
+      </div>
+        <ul class="rows">
+          <li><span class="rows__name">Windows <img src="assets/icons/windows.svg" alt="Windows"></span><a class="link rows__value" href="https://github.com/maxim-paradise/resonance/releases/latest">.exe or .msi</a><p>Windows 10 and 11, 64-bit</p></li>
+          <li><span class="rows__name">macOS <img src="assets/icons/apple.svg" alt="macOS" class="ic-ink"></span><a class="link rows__value" href="https://github.com/maxim-paradise/resonance/releases/latest">.dmg</a><p>macOS 13 and later, Apple Silicon and Intel</p></li>
+          <li><span class="rows__name">Linux <img src="assets/icons/linux-tux.svg" alt="Linux"></span><a class="link rows__value" href="https://github.com/maxim-paradise/resonance/releases/latest">.AppImage, .deb or .rpm</a><p>Wayland and X11, PipeWire and PulseAudio</p></li>
+        </ul></div>
+        <div class="span-6 start-7 frame frame--photo dl-visual">
+          <img class="frame__img" src="img/hero-dunes.png" alt="Dunes at night under a column of light, the artwork behind the Resonance site" loading="lazy" data-source="client" data-subject="the Resonance site artwork">
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--type">
+      <div class="section-head">
+        <h2 id="close-h">Both libraries, one native player</h2>
+        <p>Free and open source for Windows, macOS and Linux.</p>
+      </div>
+      <a class="btn btn--primary btn--xl btn--wide" href="#download">Download Resonance<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <a class="nav__logo" href="#top"><img src="img/icon.svg" alt="" width="28" height="28" style="border-radius:8px">Resonance</a>
+          <p class="footer__lede">One window for both libraries.</p>
+        </div>
+        <div class="span-2 footer__col"><h3>Library</h3><ul><li><a href="#window">App window</a></li><li><a href="#setup">Setup</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Sound</h3><ul><li><a href="#sound">Equalizer</a></li><li><a href="#sound">Crossfade</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Themes</h3><ul><li><a href="#themes">Colours</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Project</h3><ul><li><a href="https://github.com/maxim-paradise/resonance">Source on GitHub</a></li><li><a href="https://github.com/maxim-paradise/resonance/releases">Releases</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Resonance &nbsp; Independent open-source project, not affiliated with SoundCloud or Google. Product names and logos are trademarks of their owners.</span>
+        <div class="socials"></div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<nav class="actionbar" aria-label="Quick actions">
+  <a class="btn btn--primary" href="#download">Download Resonance</a>
+</nav>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+</body>
+</html>

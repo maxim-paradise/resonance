@@ -5,7 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-onest), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -49,38 +50,41 @@
 
 :root {
   color-scheme: dark;
-  --background: oklch(0.1 0.004 50);
-  --foreground: oklch(0.96 0.012 70);
-  --card: oklch(0.15 0.006 50);
-  --card-foreground: oklch(0.96 0.012 70);
-  --popover: oklch(0.15 0.006 50);
-  --popover-foreground: oklch(0.96 0.012 70);
-  --primary: oklch(0.88 0.07 55);
-  --primary-foreground: oklch(0.2 0.03 40);
-  --secondary: oklch(0.2 0.008 50);
-  --secondary-foreground: oklch(0.96 0.012 70);
-  --muted: oklch(0.2 0.008 50);
-  --muted-foreground: oklch(0.7 0.02 60);
-  --accent: oklch(0.22 0.01 50);
-  --accent-foreground: oklch(0.96 0.012 70);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.88 0.07 55 / 60%);
-  --chart-1: oklch(0.88 0.07 55);
-  --chart-2: oklch(0.7 0.09 50);
-  --chart-3: oklch(0.55 0.08 45);
-  --chart-4: oklch(0.4 0.06 45);
-  --chart-5: oklch(0.3 0.04 45);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.15 0.006 50);
-  --sidebar-foreground: oklch(0.96 0.012 70);
-  --sidebar-primary: oklch(0.88 0.07 55);
-  --sidebar-primary-foreground: oklch(0.2 0.03 40);
-  --sidebar-accent: oklch(0.22 0.01 50);
-  --sidebar-accent-foreground: oklch(0.96 0.012 70);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.88 0.07 55 / 60%);
+  /* Resonance dark + red: warm near-black ground, one crimson accent taken from the app's crimson theme */
+  --background: #0b0707;
+  --foreground: #f6ece8;
+  --card: #140c0b;
+  --card-foreground: #f6ece8;
+  --popover: #140c0b;
+  --popover-foreground: #f6ece8;
+  --primary: #e5192e;
+  --primary-foreground: #ffffff;
+  --secondary: #1d1311;
+  --secondary-foreground: #f6ece8;
+  --muted: #1d1311;
+  --muted-foreground: #b09c97;
+  --accent: #ff5c6a;
+  --accent-foreground: #0b0707;
+  --destructive: #ff5c6a;
+  --border: rgb(255 225 215 / 9%);
+  --input: rgb(255 225 215 / 14%);
+  --ring: #ff5c6a;
+  --chart-1: #e5192e;
+  --chart-2: #ff5c6a;
+  --chart-3: #ff8a7a;
+  --chart-4: #7a2a2a;
+  --chart-5: #3a1715;
+  --radius: 1rem;
+  --sidebar: #140c0b;
+  --sidebar-foreground: #f6ece8;
+  --sidebar-primary: #e5192e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1d1311;
+  --sidebar-accent-foreground: #f6ece8;
+  --sidebar-border: rgb(255 225 215 / 9%);
+  --sidebar-ring: #ff5c6a;
+  --surface-2: #1d1311;
+  --line-strong: rgb(255 225 215 / 16%);
 }
 
 @layer base {
@@ -89,12 +93,17 @@
   }
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+  }
+  :where(a, button, input, [role='tab'], [role='switch']):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
   }
   body {
     @apply bg-background text-foreground font-sans;
   }
   ::selection {
-    background: oklch(0.88 0.07 55 / 35%);
+    background: rgb(229 25 46 / 45%);
   }
 }
 
@@ -164,4 +173,39 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+/* the dot field behind dark sections (recent.design halftone look) */
+.dot-field {
+  background-image: radial-gradient(rgb(255 225 215 / 14%) 1px, transparent 1.2px);
+  background-size: 8px 8px;
+}
+
+@keyframes lyric-step {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dash-run {
+  to { stroke-dashoffset: -24; }
+}
+
+@utility animate-spin-slow {
+  animation: spin-slow 14s linear infinite;
+}
+
+@utility animate-dash-run {
+  animation: dash-run 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

@@ -1,113 +1,86 @@
 'use client'
 
-import { ArrowDown, ArrowUpRight } from 'lucide-react'
-import { AnimatedHeroBackground } from './animated-hero-background'
-import { HeroShowcaseCarousel } from './hero-showcase-carousel'
+import Image from 'next/image'
 import { useI18n } from './i18n'
-import {
-  AnimatedText,
-  LogoMark,
-  REPO_URL,
-  Reveal,
-  SoundCloudBadge,
-  YouTubeMusicBadge,
-} from './primitives'
+import { REPO_URL, SoundCloudBadge, WavySeekbar, YouTubeMusicBadge } from './primitives'
+import { Arrow, ButtonLink, Container } from './ui-bits'
 
 export function Hero() {
-  const { locale, t } = useI18n()
+  const { t } = useI18n()
 
   return (
-    <section id="top" className="relative overflow-x-clip pt-32 pb-20 md:pt-40 md:pb-28">
-      {/* Ambient top glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-10 -z-10 mx-auto h-[540px] max-w-5xl rounded-full bg-[radial-gradient(55%_50%_at_50%_30%,oklch(0.52_0.09_45/38%),transparent_72%)] blur-3xl"
-      />
-
-      <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
-        <div
-          className="animate-rise-in inline-flex flex-wrap items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs text-muted-foreground backdrop-blur-md"
-          style={{ animationDelay: '40ms' }}
-        >
-          <span>{t.hero.pillPrefix}</span>
-          <SoundCloudBadge />
-          <span className="text-white/30">+</span>
-          <YouTubeMusicBadge />
-        </div>
-
-        <h1 className="mt-6 text-balance text-4xl leading-[1.06] font-semibold tracking-tight text-foreground sm:text-6xl md:text-7xl">
-          <AnimatedText
-            key={locale}
-            text={t.hero.title}
-            wordClassName="bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent"
-            baseDelay={80}
-            stagger={45}
-          />
-        </h1>
-
-        <p
-          className="animate-rise-in mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg"
-          style={{ animationDelay: '420ms' }}
-        >
-          {t.hero.subtitle}
-        </p>
-
-        <div
-          className="animate-rise-in mt-8 flex flex-wrap items-center justify-center gap-3"
-          style={{ animationDelay: '540ms' }}
-        >
-          <a
-            href="#download"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[0_0_40px_oklch(0.88_0.07_55/30%)] transition-transform hover:scale-[1.02]"
-          >
-            <ArrowDown className="size-4" aria-hidden="true" />
-            {t.hero.downloadCta}
-          </a>
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-white/10"
-          >
-            {t.hero.githubCta}
-            <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
-          </a>
-        </div>
-
-        <p
-          className="animate-rise-in mt-4 font-mono text-xs text-muted-foreground/80"
-          style={{ animationDelay: '640ms' }}
-        >
-          {t.hero.techMeta}
-        </p>
+    <section id="top" aria-labelledby="hero-h" className="relative overflow-clip pt-28 pb-20 md:pt-36 md:pb-28">
+      {/* ground: a red glow behind the window and a dot field fading in from the right */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute top-[38%] left-1/2 h-[700px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(229_25_46/38%),transparent)] blur-2xl" />
+        <div className="dot-field absolute inset-0 [mask-image:linear-gradient(110deg,transparent_35%,black_80%)]" />
       </div>
 
-      {/* Ribbed dunes / soundwave horizon background with glowing RS emblem */}
-      <div className="relative -mt-4 aspect-[16/9] w-full min-h-[360px] md:-mt-10 md:aspect-[2.25/1]">
-        <AnimatedHeroBackground src="/images/hero-dunes.png" />
-        {/* Extra seamless top & bottom feathering into the page background */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-background via-background/75 to-transparent"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-background via-background/70 to-transparent"
-        />
-        <div className="absolute top-[53%] left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="animate-beam-pulse absolute -inset-12 rounded-full bg-primary/25 blur-3xl" />
-          <div className="relative grid size-20 place-items-center rounded-3xl border border-white/20 bg-gradient-to-b from-white/20 to-white/[0.04] p-1.5 shadow-[0_0_60px_oklch(0.88_0.07_55/40%)] backdrop-blur-md">
-            <div className="grid size-full place-items-center overflow-hidden rounded-2xl bg-black">
-              <LogoMark className="size-14 rounded-xl" />
+      <Container>
+        <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
+          <div className="flex flex-col gap-6 lg:col-span-7">
+            <p className="animate-rise-in flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <SoundCloudBadge />
+              <span aria-hidden="true" className="text-white/30">+</span>
+              <YouTubeMusicBadge />
+            </p>
+            <h1
+              id="hero-h"
+              className="animate-rise-in font-display text-[38px] leading-[1.02] font-medium tracking-[-0.045em] text-balance sm:text-[56px] lg:text-[54px] xl:text-[60px]"
+              style={{ animationDelay: '60ms' }}
+            >
+              {t.hero.title}
+            </h1>
+          </div>
+          <div className="animate-rise-in flex flex-col gap-6 lg:col-span-5 lg:pb-2" style={{ animationDelay: '140ms' }}>
+            <p className="text-[17px] leading-relaxed text-muted-foreground">{t.hero.lead}</p>
+            <div className="flex flex-wrap gap-3">
+              <ButtonLink href="#download">
+                {t.hero.download}
+                <Arrow />
+              </ButtonLink>
+              <ButtonLink href={REPO_URL} target="_blank" rel="noreferrer" variant="secondary">
+                {t.hero.source}
+              </ButtonLink>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Interactive 3-screenshot Fan Carousel */}
-      <Reveal delay={180} className="overflow-visible">
-        <HeroShowcaseCarousel />
-      </Reveal>
+        <div className="relative mt-12 md:mt-16">
+          <div
+            className="animate-rise-in relative overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-card shadow-[0_60px_160px_-50px_rgb(229_25_46/60%)]"
+            style={{ animationDelay: '200ms' }}
+          >
+            <Image
+              src="/images/resonance-crimson.jpg"
+              alt={t.hero.shotAlt}
+              width={1280}
+              height={673}
+              priority
+              className="block h-auto w-full"
+            />
+          </div>
+
+          {/* now playing: the track that plays in the screenshot */}
+          <div className="absolute -bottom-10 left-6 hidden w-[320px] rounded-2xl border border-[var(--line-strong)] bg-[#140c0b]/95 p-5 shadow-[0_24px_60px_-20px_rgb(0_0_0/80%)] backdrop-blur md:block lg:left-10">
+            <p className="font-mono text-[11px] tracking-[0.08em] text-accent uppercase">{t.hero.nowPlaying}</p>
+            <div className="mt-3 flex items-center gap-3">
+              <Image src="/images/tracks/prava.png" alt="" width={56} height={56} className="size-14 rounded-xl object-cover" />
+              <div className="min-w-0">
+                <p className="truncate font-medium">права</p>
+                <p className="text-sm text-muted-foreground">ooes · SoundCloud</p>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
+              <span>0:57</span>
+              <WavySeekbar progress={39} accentColor="#ff5c6a" />
+              <span>2:26</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-16 text-sm text-muted-foreground md:text-right">{t.hero.meta}</p>
+      </Container>
     </section>
   )
 }

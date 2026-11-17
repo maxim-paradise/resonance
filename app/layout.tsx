@@ -1,11 +1,17 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Figtree, Geist_Mono } from 'next/font/google'
+import { Geist_Mono, Onest, Unbounded } from 'next/font/google'
 import './globals.css'
 
-const figtree = Figtree({
-  subsets: ['latin', 'latin-ext', 'cyrillic-ext'],
-  variable: '--font-figtree',
+const onest = Onest({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-onest',
+})
+
+const unbounded = Unbounded({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600'],
+  variable: '--font-unbounded',
 })
 
 const geistMono = Geist_Mono({
@@ -14,9 +20,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Resonance — SoundCloud & YouTube Music Desktop Player',
+  title: 'Resonance: desktop player for SoundCloud and YouTube Music',
   description:
-    'Native Tauri + Rust desktop music player combining SoundCloud and YouTube Music with live synced lyrics, a multi-band equalizer, crossfade, and adaptive artwork themes.',
+    'A free, open-source player for Windows, macOS and Linux that puts your SoundCloud likes and YouTube Music playlists in one window, with synced lyrics, a 10-band equalizer and crossfade.',
   icons: {
     icon: '/app-icon.png',
     apple: '/app-icon.png',
@@ -25,7 +31,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'dark',
-  themeColor: '#0a0908',
+  themeColor: '#0b0707',
 }
 
 export default function RootLayout({
@@ -36,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${figtree.variable} ${geistMono.variable}`}
+      className={`dark ${onest.variable} ${unbounded.variable} ${geistMono.variable}`}
     >
       <body className="antialiased">
         {children}
