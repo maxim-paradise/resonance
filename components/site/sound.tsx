@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Rise } from './motion'
-import { usePlayback } from './playback'
+import { Reveal } from './motion'
 
 /* ------------------------------------------------------------------ equalizer */
 
@@ -19,7 +18,7 @@ const PRESETS = {
 type PresetId = keyof typeof PRESETS
 
 const W = 640
-const H = 280
+const H = 300
 const PAD = 22
 const XS = [0.1, 0.3, 0.5, 0.7, 0.9].map((f) => f * W)
 const yOf = (v: number) => H / 2 - (v / 12) * (H / 2 - PAD)
@@ -44,7 +43,6 @@ function smoothPath(pts: [number, number][]) {
 
 function Equalizer() {
   const { t } = useI18n()
-  const { playing } = usePlayback()
   const [preset, setPreset] = useState<PresetId | 'custom'>('bass')
   const [target, setTarget] = useState<number[]>([...PRESETS.bass])
   const [vals, setVals] = useState<number[]>([...PRESETS.bass])
@@ -108,32 +106,10 @@ function Equalizer() {
     return { line, area: `${line} L${W} ${H / 2} L0 ${H / 2} Z` }
   }, [vals])
 
-  // spectrum bars lean with the curve: louder where the band is boosted
-  const bars = useMemo(() => {
-    const n = 30
-    return Array.from({ length: n }, (_, i) => {
-      const x = ((i + 0.5) / n) * W
-      let g = vals[0]
-      if (x >= XS[4]) g = vals[4]
-      else if (x > XS[0]) {
-        const k = XS.findIndex((p, idx) => x >= p && x < XS[idx + 1])
-        const f = (x - XS[k]) / (XS[k + 1] - XS[k])
-        g = vals[k] + (vals[k + 1] - vals[k]) * f
-      }
-      const base = 0.5 + 0.28 * Math.sin(i * 1.9) * Math.cos(i * 0.7)
-      const amp = Math.max(0.12, Math.min(1, base * (0.55 + ((g + 12) / 24) * 0.9)))
-      return {
-        amp: Math.round(amp * 100) / 100,
-        delay: Math.round(((i * 0.13) % 1.3) * 100) / 100,
-        dur: Math.round((1.1 + ((i * 37) % 7) / 10) * 100) / 100,
-      }
-    })
-  }, [vals])
-
   const ids: (PresetId | 'custom')[] = ['flat', 'bass', 'vocal', 'rock', 'electronic', 'custom']
 
   return (
-    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-8 lg:col-span-7 lg:row-span-2">
+    <div className="w-full min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-2xl font-extrabold tracking-tight">{t.sound.eq.title}</h3>
@@ -165,23 +141,8 @@ function Equalizer() {
         ))}
       </div>
 
-      <div className="relative mt-6 overflow-hidden rounded-xl bg-[#141414]">
-        <div aria-hidden="true" className="absolute inset-x-[2%] bottom-0 flex h-[58%] items-end gap-[5px]">
-          {bars.map((b, i) => (
-            <span
-              key={i}
-              className="flex-1 rounded-t-[3px] bg-[var(--accent)] opacity-[0.16]"
-              style={{
-                height: '100%',
-                transformOrigin: 'bottom',
-                transform: playing ? undefined : `scaleY(${b.amp * 0.5})`,
-                animation: playing ? `spectrum ${b.dur}s ease-in-out ${b.delay}s infinite` : 'none',
-                ['--amp' as string]: b.amp,
-              }}
-            />
-          ))}
-        </div>
-        <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="relative block w-full select-none touch-none" role="group" aria-label={t.sound.eq.title}>
+      <div className="mt-6 overflow-hidden rounded-xl bg-[#141414]">
+        <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="block w-full select-none touch-none" role="group" aria-label={t.sound.eq.title}>
           <defs>
             <linearGradient id="eq-fill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0" stopColor="var(--accent)" stopOpacity="0.4" />
@@ -240,38 +201,57 @@ function Equalizer() {
 /* ------------------------------------------------------------------ crossfade */
 
 type CurveId = 'linear' | 'smooth' | 'ultra'
-const CW = 360
-const CH = 150
-const CP = 14
+const XW = 640
+const XH = 300
+const XP = 22
+const SPAN = 16 // seconds shown on the axis
+const MID = 8
 
-function curveFns(id: CurveId, hard: boolean) {
-  if (hard) return { inn: (t: number) => (t < 0.5 ? 0 : 1), out: (t: number) => (t < 0.5 ? 1 : 0) }
+function curveFns(id: CurveId) {
   if (id === 'linear') return { inn: (t: number) => t, out: (t: number) => 1 - t }
   if (id === 'smooth') return { inn: (t: number) => Math.sin((t * Math.PI) / 2), out: (t: number) => Math.cos((t * Math.PI) / 2) }
   return { inn: (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t), out: (t: number) => 0.5 + 0.5 * Math.cos(Math.PI * t) }
 }
 
+const gx = (sec: number) => (sec / SPAN) * XW
+const gy = (g: number) => XH - XP - g * (XH - XP * 2)
+
+/**
+ * The picture is the real timeline of a transition. Track B starts while Track A is still playing and
+ * the two overlap for exactly the chosen number of seconds, so the slider widens the overlap and the
+ * curve selector reshapes the two volume lines inside it.
+ */
 function Crossfade() {
   const { t } = useI18n()
   const [dur, setDur] = useState(5.5)
   const [curve, setCurve] = useState<CurveId>('ultra')
 
-  const paths = useMemo(() => {
-    const f = curveFns(curve, dur === 0)
-    const n = 60
-    const line = (g: (x: number) => number) =>
-      Array.from({ length: n + 1 }, (_, i) => {
-        const x = i / n
-        return `${i === 0 ? 'M' : 'L'}${(x * CW).toFixed(1)} ${(CH - CP - g(x) * (CH - CP * 2)).toFixed(1)}`
-      }).join('')
-    const inn = line(f.inn)
-    return { inn, out: line(f.out), area: `${inn} L${CW} ${CH - CP} L0 ${CH - CP} Z` }
-  }, [curve, dur])
-
-  const sweep = Math.max(1.4, dur * 0.55)
+  const g = useMemo(() => {
+    const s = MID - dur / 2
+    const e = MID + dur / 2
+    const f = curveFns(curve)
+    let a: string
+    let b: string
+    if (dur === 0) {
+      a = `M0 ${gy(1)} L${gx(MID)} ${gy(1)} L${gx(MID)} ${gy(0)} L${XW} ${gy(0)}`
+      b = `M0 ${gy(0)} L${gx(MID)} ${gy(0)} L${gx(MID)} ${gy(1)} L${XW} ${gy(1)}`
+    } else {
+      const n = 48
+      const pa: string[] = []
+      const pb: string[] = []
+      for (let i = 0; i <= n; i++) {
+        const k = i / n
+        pa.push(`L${gx(s + k * dur).toFixed(1)} ${gy(f.out(k)).toFixed(1)}`)
+        pb.push(`L${gx(s + k * dur).toFixed(1)} ${gy(f.inn(k)).toFixed(1)}`)
+      }
+      a = `M0 ${gy(1)} L${gx(s)} ${gy(1)} ${pa.join(' ')} L${XW} ${gy(0)}`
+      b = `M0 ${gy(0)} L${gx(s)} ${gy(0)} ${pb.join(' ')} L${XW} ${gy(1)}`
+    }
+    return { a, b, x0: gx(s), x1: gx(e), s, e }
+  }, [dur, curve])
 
   return (
-    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-7 lg:col-span-5">
+    <div className="flex w-full min-w-0 flex-col rounded-2xl bg-[#1e1e1e] p-6 md:p-7">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-xl font-extrabold tracking-tight">{t.sound.xfade.title}</h3>
         <span className="font-mono text-[15px] font-bold tabular-nums text-[var(--accent)]">
@@ -279,22 +259,40 @@ function Crossfade() {
         </span>
       </div>
 
-      <div className="relative mt-4 overflow-hidden rounded-xl bg-[#141414]">
-        <svg viewBox={`0 0 ${CW} ${CH}`} className="block w-full" role="img" aria-label={`${t.sound.xfade.title}: ${t.sound.xfade.curves[curve]}`}>
-          <path d={paths.area} fill="var(--accent)" opacity="0.1" />
-          <path d={paths.out} fill="none" stroke="#8a8a8a" strokeWidth="2.5" strokeLinecap="round" />
-          <path d={paths.inn} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
+      <div className="relative mt-4 min-h-[220px] flex-1 overflow-hidden rounded-xl bg-[#141414]">
+        <svg
+          viewBox={`0 0 ${XW} ${XH}`}
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+          role="img"
+          aria-label={`${t.sound.xfade.title}: ${dur} s, ${t.sound.xfade.curves[curve]}`}
+        >
+          {[0, 0.5, 1].map((v) => (
+            <line key={v} x1="0" x2={XW} y1={gy(v)} y2={gy(v)} stroke="#2c2c2c" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
+          ))}
+          {[4, 8, 12].map((sec) => (
+            <line key={sec} x1={gx(sec)} x2={gx(sec)} y1="0" y2={XH} stroke="#242424" vectorEffect="non-scaling-stroke" />
+          ))}
+          {dur > 0 && (
+            <>
+              <rect x={g.x0} y="0" width={Math.max(0, g.x1 - g.x0)} height={XH} fill="var(--accent)" opacity="0.1" />
+              <line x1={g.x0} x2={g.x0} y1="0" y2={XH} stroke="var(--accent)" strokeOpacity="0.5" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+              <line x1={g.x1} x2={g.x1} y1="0" y2={XH} stroke="var(--accent)" strokeOpacity="0.5" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+            </>
+          )}
+          <path d={g.a} fill="none" stroke="#9a9a9a" strokeWidth="2.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          <path d={g.b} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
         </svg>
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <span
-            className="absolute inset-y-0 w-px bg-white/70"
-            style={{ left: 0, animation: `sweep ${sweep}s linear infinite` }}
-          />
-        </div>
+        <span className="pointer-events-none absolute top-2 text-[11.5px] font-bold text-[var(--accent)]" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+          {dur === 0 ? t.sound.xfade.cut : `${dur.toFixed(1)} s ${t.sound.xfade.zone}`}
+        </span>
+        <span className="pointer-events-none absolute bottom-1.5 left-2 font-mono text-[10.5px] text-[#666]">0 s</span>
+        <span className="pointer-events-none absolute bottom-1.5 right-2 font-mono text-[10.5px] text-[#666]">{SPAN} s</span>
       </div>
+
       <div className="mt-3 flex items-center gap-5 text-[12.5px] font-bold">
         <span className="inline-flex items-center gap-2 text-[#b3b3b3]">
-          <span className="h-0.5 w-5 rounded-full bg-[#8a8a8a]" aria-hidden="true" />
+          <span className="h-0.5 w-5 rounded-full bg-[#9a9a9a]" aria-hidden="true" />
           {t.sound.xfade.out}
         </span>
         <span className="inline-flex items-center gap-2 text-[var(--accent)]">
@@ -362,31 +360,53 @@ function Normalization() {
   ]
 
   return (
-    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-7 lg:col-span-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-xl font-extrabold tracking-tight">{t.sound.norm.title}</h3>
-          <p className="mt-1 text-[14px] text-[#a0a0a0]">{t.sound.norm.sub}</p>
+    <div className="grid w-full min-w-0 gap-8 rounded-2xl bg-[#1e1e1e] p-6 md:grid-cols-2 md:gap-12 md:p-8">
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-extrabold tracking-tight">{t.sound.norm.title}</h3>
+            <p className="mt-1 text-[14px] text-[#a0a0a0]">{t.sound.norm.sub}</p>
+          </div>
+          <div role="group" aria-label={t.sound.norm.title} className="flex shrink-0 rounded-full bg-[#2b2b2b] p-1">
+            {[true, false].map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                aria-pressed={on === v}
+                onClick={() => setOn(v)}
+                className={cn(
+                  'h-8 rounded-full px-3.5 text-[12px] font-extrabold transition-colors',
+                  on === v ? 'bg-white text-[#121212]' : 'text-[#b3b3b3] hover:text-white',
+                )}
+              >
+                {v ? t.sound.norm.on : t.sound.norm.off}
+              </button>
+            ))}
+          </div>
         </div>
-        <div role="group" aria-label={t.sound.norm.title} className="flex shrink-0 rounded-full bg-[#2b2b2b] p-1">
-          {[true, false].map((v) => (
+
+        <p className="mt-6 text-[13px] font-bold text-[#b3b3b3]" id="norm-target">
+          {t.sound.norm.target}
+        </p>
+        <div role="radiogroup" aria-labelledby="norm-target" className="mt-2.5 flex flex-wrap gap-2">
+          {(Object.keys(LUFS) as LufsId[]).map((id) => (
             <button
-              key={String(v)}
+              key={id}
               type="button"
-              aria-pressed={on === v}
-              onClick={() => setOn(v)}
-              className={cn(
-                'h-8 rounded-full px-3.5 text-[12px] font-extrabold transition-colors',
-                on === v ? 'bg-white text-[#121212]' : 'text-[#b3b3b3] hover:text-white',
-              )}
+              role="radio"
+              aria-checked={tgt === id}
+              aria-selected={tgt === id}
+              disabled={!on}
+              onClick={() => setTgt(id)}
+              className="chip h-9 text-[13px] disabled:opacity-40"
             >
-              {v ? t.sound.norm.on : t.sound.norm.off}
+              {t.sound.norm.targets[id]} ({LUFS[id]})
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mt-6 space-y-5">
+      <div className="space-y-5 self-center">
         {rows.map((r) => {
           const v = on ? level : r.raw
           return (
@@ -409,26 +429,6 @@ function Normalization() {
           )
         })}
       </div>
-
-      <p className="mt-6 text-[13px] font-bold text-[#b3b3b3]" id="norm-target">
-        {t.sound.norm.target}
-      </p>
-      <div role="radiogroup" aria-labelledby="norm-target" className="mt-2.5 flex flex-wrap gap-2">
-        {(Object.keys(LUFS) as LufsId[]).map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={tgt === id}
-            aria-selected={tgt === id}
-            disabled={!on}
-            onClick={() => setTgt(id)}
-            className="chip h-9 text-[13px] disabled:opacity-40"
-          >
-            {t.sound.norm.targets[id]} ({LUFS[id]})
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
@@ -438,16 +438,22 @@ export function Sound() {
   return (
     <section id="sound" aria-labelledby="sound-h" className="relative bg-[#121212] py-20 md:py-28">
       <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-        <Rise>
+        <Reveal>
           <h2 id="sound-h" className="h-section max-w-[16ch]">
             {t.sound.title}
           </h2>
           <p className="mt-4 max-w-[40rem] text-[17px] text-[#b3b3b3]">{t.sound.lead}</p>
-        </Rise>
+        </Reveal>
         <div className="mt-10 grid gap-4 lg:grid-cols-12">
-          <Equalizer />
-          <Crossfade />
-          <Normalization />
+          <Reveal className="flex min-w-0 lg:col-span-7">
+            <Equalizer />
+          </Reveal>
+          <Reveal delay={120} className="flex min-w-0 lg:col-span-5">
+            <Crossfade />
+          </Reveal>
+          <Reveal delay={60} className="flex min-w-0 lg:col-span-12">
+            <Normalization />
+          </Reveal>
         </div>
       </div>
     </section>

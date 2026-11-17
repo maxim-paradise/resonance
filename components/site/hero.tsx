@@ -7,31 +7,8 @@ import { useState } from 'react'
 import { DOWNLOADS } from '@/lib/links'
 import { useLatestVersion, useOS } from './hooks'
 import { useI18n } from './i18n'
-import { usePlayback } from './playback'
 
 const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false })
-
-function EqBars({ on }: { on: boolean }) {
-  return (
-    <span aria-hidden="true" className="flex h-3.5 items-end gap-[2px]">
-      {[0, 0.25, 0.1, 0.4].map((d) => (
-        <span
-          key={d}
-          className={on ? 'animate-eq-bounce' : ''}
-          style={{
-            width: 3,
-            height: '100%',
-            borderRadius: 2,
-            background: 'var(--accent)',
-            animationDelay: `${d}s`,
-            transform: on ? undefined : 'scaleY(0.25)',
-            transformOrigin: 'bottom',
-          }}
-        />
-      ))}
-    </span>
-  )
-}
 
 /** shown only when WebGL is unavailable */
 function StaticCovers() {
@@ -59,7 +36,6 @@ export function Hero() {
   const { t } = useI18n()
   const os = useOS()
   const version = useLatestVersion()
-  const { playing } = usePlayback()
   const [failed, setFailed] = useState(false)
   const dl = DOWNLOADS[os]
 
@@ -77,28 +53,23 @@ export function Hero() {
 
       <div className="mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(820px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
         <div className="min-w-0 lg:col-span-6">
-          <p className="animate-rise-in inline-flex items-center gap-2.5 rounded-full bg-black/35 py-1.5 pl-3 pr-4 text-[13px] font-bold text-[#e6e6e6] ring-1 ring-white/10">
-            <EqBars on={playing} />
-            {t.hero.eyebrow}
-          </p>
-
           <h1
-            className="h-display animate-rise-in mt-6 text-[clamp(2.5rem,5vw,4.5rem)]"
-            style={{ animationDelay: '80ms' }}
+            className="h-display animate-rise-in text-[clamp(2.5rem,5vw,4.5rem)]"
+            style={{ animationDelay: '60ms' }}
           >
             {t.hero.title}
           </h1>
 
           <p
-            className="animate-rise-in mt-6 max-w-[34rem] text-[17px] leading-relaxed text-[#c4c4c4] sm:text-lg"
-            style={{ animationDelay: '160ms' }}
+            className="animate-rise-in mt-6 max-w-[32rem] text-[17px] leading-relaxed text-[#c4c4c4] sm:text-lg"
+            style={{ animationDelay: '180ms' }}
           >
             {t.hero.lead}
           </p>
 
           <div
             className="animate-rise-in mt-9 flex flex-wrap items-center gap-3"
-            style={{ animationDelay: '240ms' }}
+            style={{ animationDelay: '300ms' }}
           >
             <a href={dl.primary} className="btn btn-primary">
               <Download className="size-[18px]" aria-hidden="true" />
@@ -112,7 +83,7 @@ export function Hero() {
 
           <div
             className="animate-rise-in mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-[14px] text-[#a0a0a0]"
-            style={{ animationDelay: '320ms' }}
+            style={{ animationDelay: '420ms' }}
           >
             <span>{t.hero.meta}</span>
             <span className="hidden h-1 w-1 rounded-full bg-[#555] sm:block" aria-hidden="true" />
@@ -126,7 +97,7 @@ export function Hero() {
 
           <div
             className="animate-rise-in mt-10 flex flex-wrap items-center gap-3"
-            style={{ animationDelay: '400ms' }}
+            style={{ animationDelay: '540ms' }}
           >
             <span className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full bg-black/35 py-2 pl-3.5 pr-4 text-[14px] font-bold ring-1 ring-white/10">
               <Image src="/icons/soundcloud.svg" alt="" width={30} height={17} style={{ width: 30, height: 'auto' }} />
@@ -140,7 +111,11 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative -mx-4 h-[380px] sm:h-[480px] lg:-mx-8 lg:col-span-6 lg:h-[660px]" role="img" aria-label={t.hero.sceneAlt}>
+        <div
+          className="relative -mx-4 h-[380px] min-w-0 sm:h-[480px] lg:-mx-8 lg:col-span-6 lg:h-[660px]"
+          role="img"
+          aria-label={t.hero.sceneAlt}
+        >
           {failed ? <StaticCovers /> : <HeroScene onFail={() => setFailed(true)} />}
         </div>
       </div>

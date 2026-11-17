@@ -3,7 +3,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Parallax, Rise, Tilt } from './motion'
+import { Parallax, Reveal, Tilt } from './motion'
 import { WindowFrame } from './window-frame'
 
 const SRC: Record<string, string> = {
@@ -39,37 +39,39 @@ export function Tour() {
   return (
     <section id="tour" aria-labelledby="tour-h" className="relative py-20 md:py-28">
       <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-        <Rise>
+        <Reveal>
           <h2 id="tour-h" className="h-section max-w-[18ch]">
             {t.tour.title}
           </h2>
           <p className="mt-4 max-w-[40rem] text-[17px] text-[#b3b3b3]">{t.tour.lead}</p>
-        </Rise>
+        </Reveal>
 
-        <div
-          role="tablist"
-          aria-label={t.tour.title}
-          className="scroll-hide -mx-5 mt-8 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
-        >
-          {tabs.map((tab, i) => (
-            <button
-              key={tab.id}
-              ref={(el) => {
-                refs.current[i] = el
-              }}
-              role="tab"
-              id={`tour-tab-${tab.id}`}
-              aria-selected={active === i}
-              aria-controls="tour-panel"
-              tabIndex={active === i ? 0 : -1}
-              onClick={() => setActive(i)}
-              onKeyDown={(e) => onKey(e, i)}
-              className="chip shrink-0"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <Reveal delay={120}>
+          <div
+            role="tablist"
+            aria-label={t.tour.title}
+            className="scroll-hide -mx-5 mt-8 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+          >
+            {tabs.map((tab, i) => (
+              <button
+                key={tab.id}
+                ref={(el) => {
+                  refs.current[i] = el
+                }}
+                role="tab"
+                id={`tour-tab-${tab.id}`}
+                aria-selected={active === i}
+                aria-controls="tour-panel"
+                tabIndex={active === i ? 0 : -1}
+                onClick={() => setActive(i)}
+                onKeyDown={(e) => onKey(e, i)}
+                className="chip shrink-0"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </Reveal>
 
         <div
           id="tour-panel"
@@ -77,11 +79,18 @@ export function Tour() {
           aria-labelledby={`tour-tab-${current.id}`}
           className="mt-8 grid items-start gap-8 lg:grid-cols-12 lg:gap-10"
         >
-          <div className="order-2 lg:order-1 lg:col-span-4 lg:pt-8">
-            <h3 key={current.id} className="animate-rise-in text-[clamp(1.6rem,2.6vw,2.2rem)] font-extrabold leading-[1.1] tracking-[-0.03em]">
+          <Reveal delay={180} className="order-2 min-w-0 lg:order-1 lg:col-span-4 lg:pt-8">
+            <h3
+              key={current.id}
+              className="animate-rise-in text-[clamp(1.6rem,2.6vw,2.2rem)] font-extrabold leading-[1.1] tracking-[-0.03em]"
+            >
               {current.title}
             </h3>
-            <p key={current.id + 'p'} className="animate-rise-in mt-4 text-[17px] leading-relaxed text-[#b3b3b3]" style={{ animationDelay: '60ms' }}>
+            <p
+              key={current.id + 'p'}
+              className="animate-rise-in mt-4 text-[17px] leading-relaxed text-[#b3b3b3]"
+              style={{ animationDelay: '60ms' }}
+            >
               {current.desc}
             </p>
             <div className="mt-8 flex items-center gap-2" aria-hidden="true">
@@ -95,15 +104,15 @@ export function Tour() {
                 />
               ))}
             </div>
-          </div>
+          </Reveal>
 
-          <div className="order-1 lg:order-2 lg:col-span-8">
+          <Reveal delay={260} y={48} className="order-1 min-w-0 lg:order-2 lg:col-span-8">
             <Parallax y={26}>
               <Tilt max={5} className="rounded-[14px]" innerClassName="rounded-[14px]">
                 <WindowFrame shots={shots} active={active} priority />
               </Tilt>
             </Parallax>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

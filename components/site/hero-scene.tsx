@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { RS_PATHS } from './logo'
-import { usePlayback } from './playback'
 
 const COVERS = [
   '/images/ooes-cover.png',
@@ -139,14 +138,8 @@ function labelCanvas() {
 
 export default function HeroScene({ onFail }: { onFail?: () => void }) {
   const mount = useRef<HTMLDivElement>(null)
-  const { playing } = usePlayback()
-  const playingRef = useRef(playing)
   const failRef = useRef(onFail)
   failRef.current = onFail
-
-  useEffect(() => {
-    playingRef.current = playing
-  }, [playing])
 
   useEffect(() => {
     const el = mount.current
@@ -160,7 +153,8 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
       return
     }
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // prefers-reduced-motion is deliberately not honoured here, see motion.tsx
+    const reduced = false as boolean
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -310,9 +304,7 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0 })
     io.observe(el)
 
-    let spinSpeed = reduced ? 0 : 1.1
-    let spinVel = spinSpeed
-    let ringsOn = 1
+    const spinVel = 1.1
     const clock = new THREE.Clock()
     let intro = reduced ? 1 : 0
     let raf = 0
@@ -337,19 +329,15 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
       const t = clock.elapsedTime
       intro = Math.min(1, intro + dt / 1.5)
 
-      const on = playingRef.current
-      spinSpeed = on ? 1.1 : 0
-      spinVel += (spinSpeed - spinVel) * Math.min(1, dt * 2.2)
       spin.rotation.y -= spinVel * dt
-      ringsOn += ((on ? 1 : 0.15) - ringsOn) * Math.min(1, dt * 2)
 
       pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 4)
       pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 4)
 
       rings.forEach((r, i) => {
-        const ph = ((t * (on ? 0.32 : 0.12) + i / rings.length) % 1 + 1) % 1
+        const ph = ((t * 0.32 + i / rings.length) % 1 + 1) % 1
         r.scale.setScalar(1.25 + ph * 1.5)
-        ;(r.material as THREE.MeshBasicMaterial).opacity = (1 - ph) * 0.32 * ringsOn
+        ;(r.material as THREE.MeshBasicMaterial).opacity = (1 - ph) * 0.32
       })
 
       covers.forEach((c) => {

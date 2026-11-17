@@ -1,12 +1,66 @@
 'use client'
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-/**
- * Scroll parallax: the element drifts a little against the scroll while it crosses the viewport.
- * `y` is the travel in px either side of centre. Does nothing under reduced motion.
+/*
+ * Motion here deliberately does not read prefers-reduced-motion: the owner runs Windows with
+ * animation effects switched off, which browsers report as "reduce", and wanted to see the motion.
  */
+
+/** Appear-on-scroll for any block: fades up out of a soft blur once it enters the viewport. */
+export function Reveal({
+  children,
+  className,
+  delay = 0,
+  y = 28,
+  as: Tag = 'div',
+}: {
+  children: ReactNode
+  className?: string
+  delay?: number
+  y?: number
+  as?: 'div' | 'li' | 'section' | 'span'
+}) {
+  const ref = useRef<HTMLElement | null>(null)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setShown(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  const style: CSSProperties = {
+    transitionDelay: `${delay}ms`,
+    transform: shown ? 'translate3d(0,0,0)' : `translate3d(0,${y}px,0)`,
+  }
+  return (
+    <Tag
+      ref={ref as never}
+      className={cn(
+        'transition-[opacity,transform,filter] duration-[900ms] ease-[var(--ease)] will-change-[opacity,transform]',
+        shown ? 'opacity-100 blur-0' : 'opacity-0 blur-[6px]',
+        className,
+      )}
+      style={style}
+    >
+      {children}
+    </Tag>
+  )
+}
+
+/** Scroll parallax: the element drifts a little against the scroll while it crosses the viewport. */
 export function Parallax({
   children,
   y = 40,
@@ -23,7 +77,6 @@ export function Parallax({
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     let raf = 0
     const update = () => {
@@ -54,9 +107,7 @@ export function Parallax({
   )
 }
 
-/**
- * Pointer-driven 3D tilt with a soft glare. Mouse only: touch scrolls the page as usual.
- */
+/** Pointer-driven 3D tilt with a soft glare. Mouse only: touch scrolls the page as usual. */
 export function Tilt({
   children,
   max = 8,
@@ -80,7 +131,6 @@ export function Tilt({
     const el = wrap.current
     const card = inner.current
     if (!el || !card) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     let raf = 0
     let tx = 0
@@ -141,41 +191,6 @@ export function Tilt({
           />
         )}
       </div>
-    </div>
-  )
-}
-
-/** Headline reveal: one gentle rise as a heading enters. Used on section titles only. */
-export function Rise({ children, className }: { children: ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      el.style.opacity = '1'
-      el.style.transform = 'none'
-      return
-    }
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          el.style.opacity = '1'
-          el.style.transform = 'translateY(0)'
-          io.disconnect()
-        }
-      },
-      { threshold: 0.2 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return (
-    <div
-      ref={ref}
-      className={cn('opacity-0 transition-[opacity,transform] duration-700 ease-[var(--ease)]', className)}
-      style={{ transform: 'translateY(16px)' }}
-    >
-      {children}
     </div>
   )
 }

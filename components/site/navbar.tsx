@@ -1,26 +1,46 @@
 'use client'
 
 import { Menu, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useOS } from './hooks'
 import { useI18n, type Locale } from './i18n'
 import { Wordmark } from './logo'
 import { DOWNLOADS } from '@/lib/links'
 
-const LINKS = ['tour', 'features', 'sound', 'themes', 'specs'] as const
+const LINKS = ['tour', 'features', 'themes', 'sound'] as const
 
 export function Navbar() {
   const { t, locale, setLocale } = useI18n()
   const os = useOS()
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const [open, setOpen] = useState(false)
+  const last = useRef(0)
 
+  // slides away while you read downward, slides back the moment you scroll up
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12)
-    onScroll()
+    let raf = 0
+    const update = () => {
+      raf = 0
+      const y = window.scrollY
+      const dy = y - last.current
+      setScrolled(y > 12)
+      if (y < 80) setHidden(false)
+      else if (dy > 6) setHidden(true)
+      else if (dy < -6) setHidden(false)
+      if (Math.abs(dy) > 6 || y < 80) last.current = y
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    last.current = window.scrollY
+    update()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [])
 
   useEffect(() => {
@@ -35,8 +55,10 @@ export function Navbar() {
 
   return (
     <header
+      data-hidden={hidden && !open}
       className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,backdrop-filter] duration-300',
+        'fixed inset-x-0 top-0 z-50 transition-[transform,background-color,box-shadow,backdrop-filter] duration-500 ease-[var(--ease)]',
+        hidden && !open ? '-translate-y-full' : 'translate-y-0',
         scrolled || open ? 'bg-[#151515]/85 shadow-[0_1px_0_var(--line)] backdrop-blur-xl' : 'bg-transparent',
       )}
     >

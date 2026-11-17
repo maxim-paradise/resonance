@@ -3,13 +3,14 @@
 import { RELEASES_URL, REPO_URL } from '@/lib/links'
 import { useI18n } from './i18n'
 import { Wordmark } from './logo'
+import { Reveal } from './motion'
 
 export function Footer() {
   const { t } = useI18n()
 
   return (
-    <footer className="border-t border-white/10 bg-[#0f0f0f] pb-32 pt-14 sm:pb-36">
-      <div className="mx-auto grid max-w-[1240px] gap-10 px-5 sm:px-8 md:grid-cols-12">
+    <footer className="border-t border-white/10 bg-[#0f0f0f] pb-14 pt-14">
+      <Reveal y={20} className="mx-auto grid max-w-[1240px] gap-10 px-5 sm:px-8 md:grid-cols-12">
         <div className="flex flex-col gap-4 md:col-span-6">
           <a href="#top" aria-label="Resonance">
             <Wordmark />
@@ -35,7 +36,7 @@ export function Footer() {
         <p className="border-t border-white/10 pt-6 text-[13.5px] text-[#7c7c7c] md:col-span-12">
           © {new Date().getFullYear()} Resonance. {t.footer.disclaimer}
         </p>
-      </div>
+      </Reveal>
     </footer>
   )
 }

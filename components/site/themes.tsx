@@ -4,15 +4,17 @@ import { Check } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Parallax, Rise, Tilt } from './motion'
+import { Parallax, Reveal, Tilt } from './motion'
 import { WindowFrame } from './window-frame'
 
+/* each screenshot is the real app with BOTH the background color and the accent switched */
 const THEMES = [
   { id: 'crimson', src: '/shots/home.jpg', color: '#ff9b8a', hi: '#ffb4a7', rgb: '255 155 138' },
+  { id: 'blue', src: '/shots/theme-blue.jpg', color: '#8fb8ff', hi: '#b0cdff', rgb: '143 184 255' },
+  { id: 'green', src: '/shots/theme-green.jpg', color: '#7fe3a3', hi: '#a2edbd', rgb: '127 227 163' },
   { id: 'teal', src: '/shots/theme-teal.jpg', color: '#5fd3d1', hi: '#86e3e1', rgb: '95 211 209' },
   { id: 'orange', src: '/shots/theme-orange.jpg', color: '#ffb067', hi: '#ffc58d', rgb: '255 176 103' },
   { id: 'pink', src: '/shots/theme-pink.jpg', color: '#ff8fb4', hi: '#ffabc7', rgb: '255 143 180' },
-  { id: 'blue', src: '/shots/theme-blue.jpg', color: '#8fb8ff', hi: '#b0cdff', rgb: '143 184 255' },
 ] as const
 
 export function Themes() {
@@ -36,14 +38,14 @@ export function Themes() {
       />
       <div className="mx-auto grid max-w-[1240px] items-center gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:gap-12">
         <div className="min-w-0 lg:col-span-5">
-          <Rise>
+          <Reveal>
             <h2 id="themes-h" className="h-section">
               {t.themes.title}
             </h2>
             <p className="mt-4 max-w-[30rem] text-[17px] text-[#b3b3b3]">{t.themes.lead}</p>
-          </Rise>
+          </Reveal>
 
-          <div className="mt-8">
+          <Reveal delay={120} className="mt-8">
             <p id="theme-pick" className="text-[13px] font-bold uppercase tracking-[0.12em] text-[#8a8a8a]">
               {t.themes.pick}
             </p>
@@ -72,11 +74,11 @@ export function Themes() {
                 {t.themes.names[theme.id]}
               </span>
             </div>
-          </div>
+          </Reveal>
 
           <ul className="mt-10 grid gap-5">
-            {t.themes.points.map((p) => (
-              <li key={p.title} className="flex gap-4">
+            {t.themes.points.map((p, i) => (
+              <Reveal as="li" key={p.title} delay={200 + i * 100} className="flex gap-4">
                 <span
                   aria-hidden="true"
                   className="mt-2 size-2 shrink-0 rounded-full bg-[var(--accent)] transition-colors duration-500"
@@ -85,21 +87,18 @@ export function Themes() {
                   <h3 className="text-[17px] font-bold tracking-tight">{p.title}</h3>
                   <p className="mt-1 text-[15px] leading-relaxed text-[#b3b3b3]">{p.desc}</p>
                 </div>
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
 
-        <div className="min-w-0 lg:col-span-7">
+        <Reveal delay={200} y={48} className="min-w-0 lg:col-span-7">
           <Parallax y={22}>
             <Tilt max={5} className="rounded-[14px]" innerClassName="rounded-[14px]">
-              <WindowFrame
-                shots={THEMES.map((th) => ({ src: th.src, alt: t.themes.alt }))}
-                active={active}
-              />
+              <WindowFrame shots={THEMES.map((th) => ({ src: th.src, alt: t.themes.alt }))} active={active} />
             </Tilt>
           </Parallax>
-        </div>
+        </Reveal>
       </div>
     </section>
   )

@@ -1,12 +1,12 @@
 'use client'
 
-import { ArrowUpRight, Download as DownloadIcon } from 'lucide-react'
+import { Download as DownloadIcon } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { DOWNLOADS, REPO_URL, type OS } from '@/lib/links'
+import { DOWNLOADS, type OS } from '@/lib/links'
 import { useOS } from './hooks'
 import { useI18n } from './i18n'
-import { Rise, Tilt } from './motion'
+import { Reveal, Tilt } from './motion'
 
 const ORDER: OS[] = ['windows', 'macos', 'linux']
 
@@ -21,19 +21,19 @@ export function Download() {
         className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(700px_320px_at_50%_0%,rgb(var(--accent-rgb)/0.16),transparent_70%)]"
       />
       <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-        <Rise className="mx-auto max-w-[44rem] text-center">
+        <Reveal className="mx-auto max-w-[44rem] text-center">
           <h2 id="download-h" className="h-section">
             {t.download.title}
           </h2>
           <p className="mx-auto mt-4 max-w-[36rem] text-[17px] text-[#b3b3b3]">{t.download.lead}</p>
-        </Rise>
+        </Reveal>
 
         <ul className="mt-12 grid gap-5 md:grid-cols-3">
-          {ORDER.map((id) => {
+          {ORDER.map((id, idx) => {
             const d = DOWNLOADS[id]
             const yours = mine === id
             return (
-              <li key={id}>
+              <Reveal as="li" key={id} delay={idx * 130} y={44} className="min-w-0">
                 <Tilt max={9} scale={1.02} className="h-full rounded-2xl" innerClassName="h-full rounded-2xl">
                   <div
                     className={cn(
@@ -48,7 +48,10 @@ export function Download() {
                       </span>
                     )}
                     <div className="[transform:translateZ(46px)]">
-                      <span className="animate-float-y grid size-[72px] place-items-center rounded-2xl bg-[#2b2b2b] shadow-[0_14px_30px_rgb(0_0_0/0.45)]" style={{ animationDelay: `${ORDER.indexOf(id) * 0.5}s` }}>
+                      <span
+                        className="animate-float-y grid size-[72px] place-items-center rounded-2xl bg-[#2b2b2b] shadow-[0_14px_30px_rgb(0_0_0/0.45)]"
+                        style={{ animationDelay: `${idx * 0.5}s` }}
+                      >
                         <Image src={d.icon} alt="" width={36} height={36} className={d.invert ? 'size-9 invert' : 'size-9'} />
                       </span>
                     </div>
@@ -74,22 +77,10 @@ export function Download() {
                     </p>
                   </div>
                 </Tilt>
-              </li>
+              </Reveal>
             )
           })}
         </ul>
-
-        <div className="mt-10 text-center">
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 text-[15px] font-bold text-[#b3b3b3] transition-colors hover:text-white"
-          >
-            {t.download.source}
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </a>
-        </div>
       </div>
     </section>
   )

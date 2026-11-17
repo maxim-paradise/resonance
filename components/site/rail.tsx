@@ -1,0 +1,88 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
+import { useI18n } from './i18n'
+
+const IDS = ['top', 'tour', 'features', 'themes', 'sound', 'lyrics', 'setup', 'download'] as const
+
+/**
+ * Page position: a thin accent line along the top edge shows how far you have read,
+ * and a column of dots on the right edge marks the sections. Click a dot to jump.
+ */
+export function Rail() {
+  const { t } = useI18n()
+  const [progress, setProgress] = useState(0)
+  const [current, setCurrent] = useState<string>('top')
+
+  useEffect(() => {
+    let raf = 0
+    const update = () => {
+      raf = 0
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0)
+      // the section whose top is the last one above the middle of the screen
+      const mid = window.innerHeight * 0.45
+      let found: string = IDS[0]
+      for (const id of IDS) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= mid) found = id
+      }
+      setCurrent(found)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  return (
+    <>
+      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px]">
+        <div
+          className="h-full origin-left bg-[var(--accent)] transition-[width] duration-150 ease-out"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+
+      <nav
+        aria-label={t.rail.label}
+        className="fixed right-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-end gap-1 xl:flex"
+      >
+        {IDS.map((id) => {
+          const active = current === id
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-label={t.rail[id]}
+              aria-current={active ? 'true' : undefined}
+              className="group flex items-center gap-3 py-1.5 pl-6"
+            >
+              <span
+                className={cn(
+                  'translate-x-2 rounded-full bg-[#2a2a2a] px-3 py-1 text-[12px] font-bold text-white opacity-0 shadow-lg transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100',
+                )}
+              >
+                {t.rail[id]}
+              </span>
+              <span
+                className={cn(
+                  'block rounded-full transition-all duration-300 ease-[var(--ease)]',
+                  active ? 'h-7 w-1.5 bg-[var(--accent)]' : 'size-1.5 bg-[#555] group-hover:bg-white',
+                )}
+              />
+            </a>
+          )
+        })}
+      </nav>
+    </>
+  )
+}

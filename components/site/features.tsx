@@ -1,116 +1,123 @@
 'use client'
 
-import {
-  AudioLines,
-  Blend,
-  Cpu,
-  Droplets,
-  FolderLock,
-  Gauge,
-  Heart,
-  Keyboard,
-  Languages,
-  Layers,
-  Library,
-  ListMusic,
-  Maximize2,
-  MicVocal,
-  Moon,
-  Music,
-  Palette,
-  RefreshCw,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react'
-import { useState } from 'react'
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Rise } from './motion'
+import { Reveal } from './motion'
 
-const ICONS: Record<string, LucideIcon> = {
-  two: Library,
-  fav: Heart,
-  search: Search,
-  playlists: ListMusic,
-  bar: Music,
-  queue: ListMusic,
-  lyrics: MicVocal,
-  fullscreen: Maximize2,
-  change: RefreshCw,
-  eq: SlidersHorizontal,
-  xfade: Blend,
-  norm: Gauge,
-  glass: Droplets,
-  bg: Layers,
-  accent: Palette,
-  metal: Sparkles,
-  theme: Moon,
-  keys: Keyboard,
-  lang: Languages,
-  update: Zap,
-  local: FolderLock,
-  os: Cpu,
-}
-
-type Cat = 'all' | 'library' | 'playback' | 'sound' | 'look' | 'app'
-const CATS: Cat[] = ['all', 'library', 'playback', 'sound', 'look', 'app']
-
+/**
+ * Four things Resonance does that its neighbours do not. Each is a large tile with a real
+ * screenshot peeking out of it, not a grid of icons.
+ */
 export function Features() {
   const { t } = useI18n()
-  const [cat, setCat] = useState<Cat>('all')
-  const items = t.features.items.filter((i) => cat === 'all' || i.cat === cat)
+  const [library, colors, fade, lyrics] = t.why.items
+  const alts = t.why.alts
 
   return (
     <section id="features" aria-labelledby="features-h" className="relative bg-[#121212] py-20 md:py-28">
       <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-        <Rise>
+        <Reveal>
           <h2 id="features-h" className="h-section max-w-[16ch]">
-            {t.features.title}
+            {t.why.title}
           </h2>
-          <p className="mt-4 max-w-[40rem] text-[17px] text-[#b3b3b3]">{t.features.lead}</p>
-        </Rise>
+        </Reveal>
 
-        <div
-          role="group"
-          aria-label={t.features.title}
-          className="scroll-hide -mx-5 mt-8 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
-        >
-          {CATS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-pressed={cat === c}
-              onClick={() => setCat(c)}
-              className="chip shrink-0"
-            >
-              {t.features.filters[c]}
-            </button>
-          ))}
+        <div className="mt-10 grid gap-4 lg:grid-cols-12">
+          {/* 1. one library */}
+          <Reveal className="min-w-0 lg:col-span-7">
+            <Tile title={library.title} desc={library.desc} className="h-full">
+              <div className="relative mt-8 h-[260px] overflow-hidden rounded-t-xl sm:h-[320px]">
+                <Image
+                  src="/shots/home.jpg"
+                  alt={alts.library}
+                  fill
+                  sizes="(min-width: 1024px) 700px, 100vw"
+                  className="object-cover object-left-top transition-transform duration-700 ease-[var(--ease)] group-hover:scale-[1.04]"
+                />
+              </div>
+            </Tile>
+          </Reveal>
+
+          {/* 2. colors: three themes fanned out */}
+          <Reveal delay={100} className="min-w-0 lg:col-span-5">
+            <Tile title={colors.title} desc={colors.desc} className="h-full">
+              <div role="img" aria-label={alts.colors} className="relative mt-8 h-[260px] sm:h-[320px]">
+                {[
+                  { src: '/shots/theme-blue.jpg', cls: 'left-0 top-8 -rotate-6 group-hover:-translate-x-3 group-hover:-rotate-[9deg]' },
+                  { src: '/shots/theme-orange.jpg', cls: 'left-[15%] top-3 rotate-2 group-hover:-translate-y-2' },
+                  { src: '/shots/theme-teal.jpg', cls: 'left-[30%] top-14 rotate-6 group-hover:translate-x-3 group-hover:rotate-[9deg]' },
+                ].map((s) => (
+                  <div
+                    key={s.src}
+                    className={cn(
+                      'absolute aspect-[1424/821] w-[70%] overflow-hidden rounded-lg shadow-[0_16px_40px_rgb(0_0_0/0.55)] ring-1 ring-white/10 transition-transform duration-700 ease-[var(--ease)]',
+                      s.cls,
+                    )}
+                  >
+                    <Image src={s.src} alt="" fill sizes="320px" className="object-cover" />
+                  </div>
+                ))}
+              </div>
+            </Tile>
+          </Reveal>
+
+          {/* 3. crossfade */}
+          <Reveal delay={100} className="min-w-0 lg:col-span-5">
+            <Tile title={fade.title} desc={fade.desc} className="h-full">
+              <div className="relative mt-8 h-[260px] overflow-hidden rounded-t-xl sm:h-[320px]">
+                <Image
+                  src="/shots/audio.jpg"
+                  alt={alts.fade}
+                  fill
+                  sizes="(min-width: 1024px) 520px, 100vw"
+                  className="object-cover object-left-top transition-transform duration-700 ease-[var(--ease)] group-hover:scale-[1.04]"
+                />
+              </div>
+            </Tile>
+          </Reveal>
+
+          {/* 4. lyrics */}
+          <Reveal className="min-w-0 lg:col-span-7">
+            <Tile title={lyrics.title} desc={lyrics.desc} className="h-full">
+              <div className="relative mt-8 h-[260px] overflow-hidden rounded-t-xl sm:h-[320px]">
+                <Image
+                  src="/shots/lyrics.jpg"
+                  alt={alts.lyrics}
+                  fill
+                  sizes="(min-width: 1024px) 700px, 100vw"
+                  className="object-cover object-center transition-transform duration-700 ease-[var(--ease)] group-hover:scale-[1.04]"
+                />
+              </div>
+            </Tile>
+          </Reveal>
         </div>
-
-        <ul key={cat} className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((item, i) => {
-            const Icon = ICONS[item.id] ?? AudioLines
-            return (
-              <li
-                key={item.id}
-                className="tile animate-rise-in group flex flex-col gap-4 p-5"
-                style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-              >
-                <span className="grid size-12 place-items-center rounded-lg bg-[#2b2b2b] text-[var(--accent)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-4deg]">
-                  <Icon className="size-[22px]" strokeWidth={2} aria-hidden="true" />
-                </span>
-                <div>
-                  <h3 className="text-[17px] font-bold leading-snug tracking-tight">{item.title}</h3>
-                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#b3b3b3]">{item.desc}</p>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
       </div>
     </section>
+  )
+}
+
+function Tile({
+  title,
+  desc,
+  className,
+  children,
+}: {
+  title: string
+  desc: string
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        'group flex flex-col overflow-hidden rounded-2xl bg-[#1e1e1e] px-7 pt-8 transition-[background-color,transform,box-shadow] duration-500 ease-[var(--ease)] hover:-translate-y-1 hover:bg-[#232323] hover:shadow-[0_24px_60px_rgb(0_0_0/0.45)] sm:px-9 sm:pt-10',
+        className,
+      )}
+    >
+      <h3 className="text-[clamp(1.5rem,2.4vw,2rem)] font-extrabold leading-[1.1] tracking-[-0.03em]">{title}</h3>
+      <p className="mt-3 max-w-[34rem] text-[16px] leading-relaxed text-[#b3b3b3]">{desc}</p>
+      <div className="mt-auto">{children}</div>
+    </div>
   )
 }
