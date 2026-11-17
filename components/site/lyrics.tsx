@@ -1,45 +1,133 @@
 'use client'
 
+import { Pause, Play, RefreshCw } from 'lucide-react'
+import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Container } from './ui-bits'
+import { Parallax, Rise, Tilt } from './motion'
+import { WindowFrame } from './window-frame'
 
-/* The right-hand panel of the real app (teal theme): cover, track, lyrics tab and the synced lines.
-   Cropped from the screenshot by position: x 1034, y 240, 226 x 424 px of the 1280 x 673 source. */
-const CROP = { x: 1034, y: 240, w: 226, h: 424, srcW: 1280, srcH: 673 }
+const LINE_H = 64
+
+function Demo() {
+  const { t } = useI18n()
+  const [set, setSet] = useState(0)
+  const [line, setLine] = useState(2)
+  const [playing, setPlaying] = useState(false)
+  const lines = t.lyrics.set[set]
+  const timer = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!playing) return
+    timer.current = window.setInterval(() => setLine((l) => (l + 1) % lines.length), 2200)
+    return () => {
+      if (timer.current) window.clearInterval(timer.current)
+    }
+  }, [playing, lines.length])
+
+  const progress = ((line + 1) / lines.length) * 100
+
+  return (
+    <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-[#2a2a2a] to-[#1c1c1c] p-5 shadow-[var(--shadow-md)] sm:p-6">
+      <div className="flex items-center gap-4">
+        <Image
+          src="/images/tracks/fortuna.png"
+          alt=""
+          width={56}
+          height={56}
+          className={cn('size-14 rounded-lg object-cover transition-transform duration-500', playing && 'scale-105')}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-bold">Demo</p>
+          <p className="truncate text-[13px] text-[#a0a0a0]">Resonance</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSet((s) => (s + 1) % t.lyrics.set.length)
+            setLine(0)
+          }}
+          className="chip h-9 shrink-0 text-[13px]"
+        >
+          <RefreshCw className="size-3.5" aria-hidden="true" />
+          {t.lyrics.change}
+        </button>
+      </div>
+
+      <div
+        className="relative mt-4 overflow-hidden"
+        style={{
+          height: LINE_H * 5,
+          maskImage: 'linear-gradient(to bottom, transparent, black 24%, black 76%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 24%, black 76%, transparent)',
+        }}
+      >
+        <ol
+          key={set}
+          className="absolute inset-x-0 top-0 transition-transform duration-700 ease-[var(--ease)]"
+          style={{ transform: `translateY(${LINE_H * 2 - line * LINE_H}px)` }}
+        >
+          {lines.map((text, i) => (
+            <li key={text} style={{ height: LINE_H }} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setLine(i)}
+                aria-current={i === line ? 'true' : undefined}
+                className={cn(
+                  'max-w-full truncate whitespace-nowrap text-left text-[clamp(1.2rem,1.9vw,1.6rem)] font-extrabold leading-tight tracking-[-0.02em] transition-all duration-500',
+                  i === line ? 'text-white' : i < line ? 'text-[#4a4a4a]' : 'text-[#6a6a6a] hover:text-[#9a9a9a]',
+                )}
+              >
+                {text}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="mt-4 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => setPlaying((p) => !p)}
+          aria-label={playing ? t.lyrics.pause : t.lyrics.play}
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-150 hover:scale-105 active:scale-95"
+        >
+          {playing ? <Pause className="size-5 fill-current" /> : <Play className="size-5 translate-x-[1px] fill-current" />}
+        </button>
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#4d4d4d]">
+          <div className="h-full rounded-full bg-white transition-[width] duration-700 ease-[var(--ease)]" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <p className="mt-3 text-[12.5px] text-[#7c7c7c]">{t.lyrics.note}</p>
+    </div>
+  )
+}
 
 export function Lyrics() {
   const { t } = useI18n()
-
   return (
-    <section id="lyrics" aria-labelledby="lyrics-h" className="relative overflow-clip bg-card py-24 md:py-32">
-      <div aria-hidden="true" className="pointer-events-none absolute top-1/2 right-[8%] h-[520px] w-[520px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(229_25_46/30%),transparent)] blur-2xl" />
-      <Container className="relative grid items-center gap-12 lg:grid-cols-12">
-        <div className="flex flex-col gap-6 lg:col-span-6">
-          <h2 id="lyrics-h" className="font-display text-[32px] leading-[1.05] font-medium tracking-[-0.03em] text-balance md:text-[48px]">
-            {t.lyrics.title}
-          </h2>
-          <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">{t.lyrics.lead}</p>
-        </div>
-
-        <div className="flex justify-center lg:col-span-6 lg:justify-end">
-          <div
-            className="relative w-full max-w-[300px] overflow-hidden rounded-[24px] border border-[var(--line-strong)] shadow-[0_40px_100px_-40px_rgb(0_0_0/90%)]"
-            style={{ aspectRatio: `${CROP.w} / ${CROP.h}` }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/resonance-teal.jpg"
-              alt={t.lyrics.alt}
-              className="absolute max-w-none"
-              style={{
-                width: `${(CROP.srcW / CROP.w) * 100}%`,
-                left: `${(-CROP.x / CROP.w) * 100}%`,
-                top: `${(-CROP.y / CROP.h) * 100}%`,
-              }}
-            />
+    <section id="lyrics" aria-labelledby="lyrics-h" className="relative py-20 md:py-28">
+      <div className="mx-auto grid max-w-[1240px] items-center gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:gap-12">
+        <div className="min-w-0 lg:col-span-5">
+          <Rise>
+            <h2 id="lyrics-h" className="h-section">
+              {t.lyrics.title}
+            </h2>
+            <p className="mt-4 max-w-[30rem] text-[17px] text-[#b3b3b3]">{t.lyrics.lead}</p>
+          </Rise>
+          <div className="mt-8">
+            <Demo />
           </div>
         </div>
-      </Container>
+        <div className="min-w-0 lg:col-span-7">
+          <Parallax y={34}>
+            <Tilt max={5} className="rounded-[14px]" innerClassName="rounded-[14px]">
+              <WindowFrame shots={[{ src: '/shots/lyrics.jpg', alt: t.tour.tabs[3].alt }]} active={0} />
+            </Tilt>
+          </Parallax>
+        </div>
+      </div>
     </section>
   )
 }

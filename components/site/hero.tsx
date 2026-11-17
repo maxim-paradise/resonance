@@ -1,86 +1,149 @@
 'use client'
 
+import { ArrowRight, Download } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
+import { useState } from 'react'
+import { DOWNLOADS } from '@/lib/links'
+import { useLatestVersion, useOS } from './hooks'
 import { useI18n } from './i18n'
-import { REPO_URL, SoundCloudBadge, WavySeekbar, YouTubeMusicBadge } from './primitives'
-import { Arrow, ButtonLink, Container } from './ui-bits'
+import { usePlayback } from './playback'
+
+const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false })
+
+function EqBars({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden="true" className="flex h-3.5 items-end gap-[2px]">
+      {[0, 0.25, 0.1, 0.4].map((d) => (
+        <span
+          key={d}
+          className={on ? 'animate-eq-bounce' : ''}
+          style={{
+            width: 3,
+            height: '100%',
+            borderRadius: 2,
+            background: 'var(--accent)',
+            animationDelay: `${d}s`,
+            transform: on ? undefined : 'scaleY(0.25)',
+            transformOrigin: 'bottom',
+          }}
+        />
+      ))}
+    </span>
+  )
+}
+
+/** shown only when WebGL is unavailable */
+function StaticCovers() {
+  const covers = ['/images/ooes-cover.png', '/images/playlists/stalker.png', '/images/playlists/vajbik.png']
+  return (
+    <div className="absolute inset-0 grid place-items-center">
+      <div className="relative h-[260px] w-[340px]">
+        {covers.map((src, i) => (
+          <Image
+            key={src}
+            src={src}
+            alt=""
+            width={200}
+            height={200}
+            className="absolute size-[190px] rounded-2xl object-cover shadow-2xl"
+            style={{ left: i * 70, top: i % 2 ? 56 : 0, transform: `rotate(${(i - 1) * 6}deg)` }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function Hero() {
   const { t } = useI18n()
+  const os = useOS()
+  const version = useLatestVersion()
+  const { playing } = usePlayback()
+  const [failed, setFailed] = useState(false)
+  const dl = DOWNLOADS[os]
 
   return (
-    <section id="top" aria-labelledby="hero-h" className="relative overflow-clip pt-28 pb-20 md:pt-36 md:pb-28">
-      {/* ground: a red glow behind the window and a dot field fading in from the right */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute top-[38%] left-1/2 h-[700px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(229_25_46/38%),transparent)] blur-2xl" />
-        <div className="dot-field absolute inset-0 [mask-image:linear-gradient(110deg,transparent_35%,black_80%)]" />
-      </div>
+    <section id="top" className="relative isolate overflow-hidden pt-16">
+      {/* a lifted gray at the top fading into the page ground, like a Spotify header */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(900px_520px_at_78%_8%,#3a3a3a_0%,transparent_70%),linear-gradient(to_bottom,#2a2a2a_0%,#151515_88%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="dot-field absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_30%,black,transparent)]"
+      />
 
-      <Container>
-        <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
-          <div className="flex flex-col gap-6 lg:col-span-7">
-            <p className="animate-rise-in flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <SoundCloudBadge />
-              <span aria-hidden="true" className="text-white/30">+</span>
-              <YouTubeMusicBadge />
-            </p>
-            <h1
-              id="hero-h"
-              className="animate-rise-in font-display text-[38px] leading-[1.02] font-medium tracking-[-0.045em] text-balance sm:text-[56px] lg:text-[54px] xl:text-[60px]"
-              style={{ animationDelay: '60ms' }}
-            >
-              {t.hero.title}
-            </h1>
-          </div>
-          <div className="animate-rise-in flex flex-col gap-6 lg:col-span-5 lg:pb-2" style={{ animationDelay: '140ms' }}>
-            <p className="text-[17px] leading-relaxed text-muted-foreground">{t.hero.lead}</p>
-            <div className="flex flex-wrap gap-3">
-              <ButtonLink href="#download">
-                {t.hero.download}
-                <Arrow />
-              </ButtonLink>
-              <ButtonLink href={REPO_URL} target="_blank" rel="noreferrer" variant="secondary">
-                {t.hero.source}
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(820px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
+        <div className="min-w-0 lg:col-span-6">
+          <p className="animate-rise-in inline-flex items-center gap-2.5 rounded-full bg-black/35 py-1.5 pl-3 pr-4 text-[13px] font-bold text-[#e6e6e6] ring-1 ring-white/10">
+            <EqBars on={playing} />
+            {t.hero.eyebrow}
+          </p>
 
-        <div className="relative mt-12 md:mt-16">
-          <div
-            className="animate-rise-in relative overflow-hidden rounded-[24px] border border-[var(--line-strong)] bg-card shadow-[0_60px_160px_-50px_rgb(229_25_46/60%)]"
-            style={{ animationDelay: '200ms' }}
+          <h1
+            className="h-display animate-rise-in mt-6 text-[clamp(2.5rem,5vw,4.5rem)]"
+            style={{ animationDelay: '80ms' }}
           >
-            <Image
-              src="/images/resonance-crimson.jpg"
-              alt={t.hero.shotAlt}
-              width={1280}
-              height={673}
-              priority
-              className="block h-auto w-full"
-            />
+            {t.hero.title}
+          </h1>
+
+          <p
+            className="animate-rise-in mt-6 max-w-[34rem] text-[17px] leading-relaxed text-[#c4c4c4] sm:text-lg"
+            style={{ animationDelay: '160ms' }}
+          >
+            {t.hero.lead}
+          </p>
+
+          <div
+            className="animate-rise-in mt-9 flex flex-wrap items-center gap-3"
+            style={{ animationDelay: '240ms' }}
+          >
+            <a href={dl.primary} className="btn btn-primary">
+              <Download className="size-[18px]" aria-hidden="true" />
+              {t.hero.download} {dl.name}
+            </a>
+            <a href="#tour" className="btn btn-ghost">
+              {t.hero.tour}
+              <ArrowRight className="size-[18px]" aria-hidden="true" />
+            </a>
           </div>
 
-          {/* now playing: the track that plays in the screenshot */}
-          <div className="absolute -bottom-10 left-6 hidden w-[320px] rounded-2xl border border-[var(--line-strong)] bg-[#140c0b]/95 p-5 shadow-[0_24px_60px_-20px_rgb(0_0_0/80%)] backdrop-blur md:block lg:left-10">
-            <p className="font-mono text-[11px] tracking-[0.08em] text-accent uppercase">{t.hero.nowPlaying}</p>
-            <div className="mt-3 flex items-center gap-3">
-              <Image src="/images/tracks/prava.png" alt="" width={56} height={56} className="size-14 rounded-xl object-cover" />
-              <div className="min-w-0">
-                <p className="truncate font-medium">права</p>
-                <p className="text-sm text-muted-foreground">ooes · SoundCloud</p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
-              <span>0:57</span>
-              <WavySeekbar progress={39} accentColor="#ff5c6a" />
-              <span>2:26</span>
-            </div>
+          <div
+            className="animate-rise-in mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-[14px] text-[#a0a0a0]"
+            style={{ animationDelay: '320ms' }}
+          >
+            <span>{t.hero.meta}</span>
+            <span className="hidden h-1 w-1 rounded-full bg-[#555] sm:block" aria-hidden="true" />
+            <span className="inline-flex items-center gap-2">
+              <span className="rounded-full bg-[#2e2e2e] px-2.5 py-0.5 font-mono text-[12px] font-semibold text-white">
+                {version}
+              </span>
+              {t.hero.version}
+            </span>
+          </div>
+
+          <div
+            className="animate-rise-in mt-10 flex flex-wrap items-center gap-3"
+            style={{ animationDelay: '400ms' }}
+          >
+            <span className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full bg-black/35 py-2 pl-3.5 pr-4 text-[14px] font-bold ring-1 ring-white/10">
+              <Image src="/icons/soundcloud.svg" alt="" width={30} height={17} style={{ width: 30, height: 'auto' }} />
+              SoundCloud
+            </span>
+            <span aria-hidden="true" className="text-[#666]">+</span>
+            <span className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full bg-black/35 py-2 pl-3 pr-4 text-[14px] font-bold ring-1 ring-white/10">
+              <Image src="/icons/youtubemusic.svg" alt="" width={20} height={20} style={{ width: 20, height: 'auto' }} />
+              YouTube Music
+            </span>
           </div>
         </div>
 
-        <p className="mt-16 text-sm text-muted-foreground md:text-right">{t.hero.meta}</p>
-      </Container>
+        <div className="relative -mx-4 h-[380px] sm:h-[480px] lg:-mx-8 lg:col-span-6 lg:h-[660px]" role="img" aria-label={t.hero.sceneAlt}>
+          {failed ? <StaticCovers /> : <HeroScene onFail={() => setFailed(true)} />}
+        </div>
+      </div>
     </section>
   )
 }

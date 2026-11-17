@@ -1,90 +1,96 @@
 'use client'
 
+import { ArrowUpRight, Download as DownloadIcon } from 'lucide-react'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
+import { DOWNLOADS, REPO_URL, type OS } from '@/lib/links'
+import { useOS } from './hooks'
 import { useI18n } from './i18n'
-import { REPO_URL } from './primitives'
-import { Arrow, ButtonLink, Container } from './ui-bits'
+import { Rise, Tilt } from './motion'
+
+const ORDER: OS[] = ['windows', 'macos', 'linux']
 
 export function Download() {
   const { t } = useI18n()
-
-  const platforms = [
-    {
-      name: 'Windows',
-      icon: '/icons/windows.svg',
-      invert: false,
-      detail: t.download.windowsDetail,
-      primary: { label: t.download.windowsPrimary, href: '/api/download?platform=windows-exe' },
-      also: [{ label: '.msi', href: '/api/download?platform=windows-msi' }],
-    },
-    {
-      name: 'macOS',
-      icon: '/icons/apple.svg',
-      invert: true,
-      detail: t.download.macosDetail,
-      primary: { label: t.download.macosPrimary, href: '/api/download?platform=macos-arm64' },
-      also: [{ label: t.download.macIntel, href: '/api/download?platform=macos-x64' }],
-    },
-    {
-      name: 'Linux',
-      icon: '/icons/linux-tux.svg',
-      invert: false,
-      detail: t.download.linuxDetail,
-      primary: { label: t.download.linuxPrimary, href: '/api/download?platform=linux-appimage' },
-      also: [
-        { label: '.deb', href: '/api/download?platform=linux-deb' },
-        { label: '.rpm', href: '/api/download?platform=linux-rpm' },
-      ],
-    },
-  ]
+  const mine = useOS()
 
   return (
-    <section id="download" aria-labelledby="download-h" className="relative overflow-clip py-24 md:py-32">
-      {/* the site's own artwork: dunes under a column of light */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <Image src="/images/hero-dunes.png" alt="" fill className="object-cover object-[50%_60%] opacity-55" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/60 to-background" />
-      </div>
-
-      <Container>
-        <div className="max-w-[640px]">
-          <h2 id="download-h" className="font-display text-[32px] leading-[1.05] font-medium tracking-[-0.04em] md:text-[48px]">
+    <section id="download" aria-labelledby="download-h" className="relative isolate overflow-hidden bg-[#121212] py-20 md:py-28">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(700px_320px_at_50%_0%,rgb(var(--accent-rgb)/0.16),transparent_70%)]"
+      />
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
+        <Rise className="mx-auto max-w-[44rem] text-center">
+          <h2 id="download-h" className="h-section">
             {t.download.title}
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{t.download.lead}</p>
-        </div>
+          <p className="mx-auto mt-4 max-w-[36rem] text-[17px] text-[#b3b3b3]">{t.download.lead}</p>
+        </Rise>
 
-        <ul className="mt-12 grid gap-4 md:mt-16 md:grid-cols-3">
-          {platforms.map((p) => (
-            <li key={p.name} className="flex flex-col gap-6 rounded-[24px] border border-[var(--line-strong)] bg-[#140c0b]/90 p-6 backdrop-blur md:p-8">
-              <div className="flex items-center gap-4">
-                <Image src={p.icon} alt="" width={36} height={36} className={p.invert ? 'size-9 invert' : 'size-9'} />
-                <div>
-                  <h3 className="text-xl font-medium tracking-tight">{p.name}</h3>
-                  <p className="text-sm text-muted-foreground">{p.detail}</p>
-                </div>
-              </div>
-              <ButtonLink href={p.primary.href} className="mt-auto w-full justify-between">
-                {p.primary.label}
-                <Arrow />
-              </ButtonLink>
-              <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                <span>{t.download.also}:</span>
-                {p.also.map((a) => (
-                  <a key={a.href} href={a.href} className="text-foreground underline decoration-white/30 underline-offset-4 hover:decoration-accent">
-                    {a.label}
-                  </a>
-                ))}
-              </p>
-            </li>
-          ))}
+        <ul className="mt-12 grid gap-5 md:grid-cols-3">
+          {ORDER.map((id) => {
+            const d = DOWNLOADS[id]
+            const yours = mine === id
+            return (
+              <li key={id}>
+                <Tilt max={9} scale={1.02} className="h-full rounded-2xl" innerClassName="h-full rounded-2xl">
+                  <div
+                    className={cn(
+                      'relative flex h-full flex-col gap-6 rounded-2xl bg-[#1e1e1e] p-7 transition-shadow duration-300',
+                      yours ? 'shadow-[0_0_0_1.5px_var(--accent),0_24px_60px_rgb(0_0_0/0.5)]' : 'shadow-[0_0_0_1px_var(--line)]',
+                    )}
+                  >
+                    {yours && (
+                      <span className="absolute right-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-[var(--on-accent)]">
+                        <span className="size-1.5 rounded-full bg-[var(--on-accent)]" />
+                        {t.download.yours}
+                      </span>
+                    )}
+                    <div className="[transform:translateZ(46px)]">
+                      <span className="animate-float-y grid size-[72px] place-items-center rounded-2xl bg-[#2b2b2b] shadow-[0_14px_30px_rgb(0_0_0/0.45)]" style={{ animationDelay: `${ORDER.indexOf(id) * 0.5}s` }}>
+                        <Image src={d.icon} alt="" width={36} height={36} className={d.invert ? 'size-9 invert' : 'size-9'} />
+                      </span>
+                    </div>
+                    <div className="[transform:translateZ(24px)]">
+                      <h3 className="text-2xl font-extrabold tracking-tight">{d.name}</h3>
+                      <p className="mt-1.5 text-[14.5px] text-[#a0a0a0]">{t.download.detail[id]}</p>
+                    </div>
+                    <a href={d.primary} className={cn('btn mt-auto w-full [transform:translateZ(30px)]', yours ? 'btn-primary' : 'btn-ghost')}>
+                      <DownloadIcon className="size-[18px]" aria-hidden="true" />
+                      {t.download.primary[id]}
+                    </a>
+                    <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-[#a0a0a0]">
+                      <span>{t.download.also}:</span>
+                      {d.also.map((a) => (
+                        <a
+                          key={a.href}
+                          href={a.href}
+                          className="font-semibold text-white underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-[var(--accent)]"
+                        >
+                          {a.label}
+                        </a>
+                      ))}
+                    </p>
+                  </div>
+                </Tilt>
+              </li>
+            )
+          })}
         </ul>
 
-        <a href={REPO_URL} target="_blank" rel="noreferrer" className="group mt-8 inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground">
-          {t.download.source}
-          <Arrow />
-        </a>
-      </Container>
+        <div className="mt-10 text-center">
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-[15px] font-bold text-[#b3b3b3] transition-colors hover:text-white"
+          >
+            {t.download.source}
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
     </section>
   )
 }

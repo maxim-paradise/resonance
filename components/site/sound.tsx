@@ -1,208 +1,455 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
-import { Container, SectionHead } from './ui-bits'
+import { Rise } from './motion'
+import { usePlayback } from './playback'
 
-const BANDS = ['32', '64', '125', '250', '500', '1k', '2k', '4k', '8k', '16k']
+/* ------------------------------------------------------------------ equalizer */
 
+const HZ = ['60Hz', '230Hz', '910Hz', '3.6kHz', '14kHz']
 const PRESETS = {
-  flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  bass: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0],
-  vocal: [-2, -1, 0, 2, 4, 4, 3, 1, 0, -1],
-  bright: [0, 0, 0, 0, 0, 1, 2, 4, 5, 6],
+  flat: [0, 0, 0, 0, 0],
+  bass: [6.5, 4, 0, -1, 1.5],
+  vocal: [-2, -1, 4.5, 3.5, 1],
+  rock: [4.5, 2, -1.5, 3, 4.5],
+  electronic: [5.5, 2.5, -1, 2.5, 5],
 } as const
-
 type PresetId = keyof typeof PRESETS
 
-export function Sound() {
-  const { t } = useI18n()
+const W = 640
+const H = 280
+const PAD = 22
+const XS = [0.1, 0.3, 0.5, 0.7, 0.9].map((f) => f * W)
+const yOf = (v: number) => H / 2 - (v / 12) * (H / 2 - PAD)
+const fmt = (v: number) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))
 
-  return (
-    <section id="sound" aria-labelledby="sound-h" className="py-24 md:py-32">
-      <Container>
-        <SectionHead id="sound-h" title={t.sound.title} lead={t.sound.lead} />
-        <div className="mt-12 grid gap-4 md:mt-16 lg:grid-cols-12">
-          <Equalizer />
-          <div className="grid gap-4 lg:col-span-5">
-            <Crossfade />
-            <Normalization />
-          </div>
-        </div>
-      </Container>
-    </section>
-  )
-}
-
-function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div className={cn('flex flex-col gap-5 rounded-[24px] border border-border bg-card p-6 md:p-8', className)}>{children}</div>
-  )
-}
-
-function CardHead({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div>
-      <h3 className="text-xl font-medium tracking-tight">{title}</h3>
-      <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{desc}</p>
-    </div>
-  )
+/** Catmull-Rom through the points, written as cubic Beziers */
+function smoothPath(pts: [number, number][]) {
+  let d = `M${pts[0][0]} ${pts[0][1]}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`
+  }
+  return d
 }
 
 function Equalizer() {
   const { t } = useI18n()
+  const { playing } = usePlayback()
   const [preset, setPreset] = useState<PresetId | 'custom'>('bass')
-  const [gains, setGains] = useState<number[]>([...PRESETS.bass])
+  const [target, setTarget] = useState<number[]>([...PRESETS.bass])
+  const [vals, setVals] = useState<number[]>([...PRESETS.bass])
+  const [drag, setDrag] = useState<number | null>(null)
+  const svg = useRef<SVGSVGElement>(null)
+  const raf = useRef(0)
+  const live = useRef<number[]>([...PRESETS.bass])
+
+  // glide to the target values after a preset tap
+  useEffect(() => {
+    if (drag !== null) return
+    const step = () => {
+      let moving = false
+      const next = live.current.map((v, i) => {
+        const diff = target[i] - v
+        if (Math.abs(diff) < 0.02) return target[i]
+        moving = true
+        return v + diff * 0.2
+      })
+      live.current = next
+      setVals(next)
+      if (moving) raf.current = requestAnimationFrame(step)
+    }
+    raf.current = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf.current)
+  }, [target, drag])
 
   const choose = (id: PresetId) => {
     setPreset(id)
-    setGains([...PRESETS[id]])
+    setTarget([...PRESETS[id]])
   }
 
+  const setBand = useCallback((i: number, v: number) => {
+    const clamped = Math.max(-12, Math.min(12, Math.round(v * 2) / 2))
+    setTarget((cur) => cur.map((x, k) => (k === i ? clamped : x)))
+    live.current = live.current.map((x, k) => (k === i ? clamped : x))
+    setVals(live.current)
+    setPreset('custom')
+  }, [])
+
+  const onDown = (e: PointerEvent<SVGGElement>, i: number) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDrag(i)
+  }
+  const onMove = (e: PointerEvent<SVGGElement>, i: number) => {
+    if (drag !== i || !svg.current) return
+    const r = svg.current.getBoundingClientRect()
+    const y = ((e.clientY - r.top) / r.height) * H
+    setBand(i, ((H / 2 - y) / (H / 2 - PAD)) * 12)
+  }
+  const onKey = (e: KeyboardEvent<SVGGElement>, i: number) => {
+    const step = e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 0.5 : e.key === 'ArrowDown' || e.key === 'ArrowLeft' ? -0.5 : 0
+    if (!step) return
+    e.preventDefault()
+    setBand(i, target[i] + step)
+  }
+
+  const curve = useMemo(() => {
+    const pts: [number, number][] = [[0, yOf(vals[0])], ...vals.map((v, i) => [XS[i], yOf(v)] as [number, number]), [W, yOf(vals[4])]]
+    const line = smoothPath(pts)
+    return { line, area: `${line} L${W} ${H / 2} L0 ${H / 2} Z` }
+  }, [vals])
+
+  // spectrum bars lean with the curve: louder where the band is boosted
+  const bars = useMemo(() => {
+    const n = 30
+    return Array.from({ length: n }, (_, i) => {
+      const x = ((i + 0.5) / n) * W
+      let g = vals[0]
+      if (x >= XS[4]) g = vals[4]
+      else if (x > XS[0]) {
+        const k = XS.findIndex((p, idx) => x >= p && x < XS[idx + 1])
+        const f = (x - XS[k]) / (XS[k + 1] - XS[k])
+        g = vals[k] + (vals[k + 1] - vals[k]) * f
+      }
+      const base = 0.5 + 0.28 * Math.sin(i * 1.9) * Math.cos(i * 0.7)
+      const amp = Math.max(0.12, Math.min(1, base * (0.55 + ((g + 12) / 24) * 0.9)))
+      return {
+        amp: Math.round(amp * 100) / 100,
+        delay: Math.round(((i * 0.13) % 1.3) * 100) / 100,
+        dur: Math.round((1.1 + ((i * 37) % 7) / 10) * 100) / 100,
+      }
+    })
+  }, [vals])
+
+  const ids: (PresetId | 'custom')[] = ['flat', 'bass', 'vocal', 'rock', 'electronic', 'custom']
+
   return (
-    <Card className="lg:col-span-7">
-      <CardHead title={t.sound.eq.title} desc={t.sound.eq.desc} />
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(PRESETS) as PresetId[]).map((id) => (
+    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-8 lg:col-span-7 lg:row-span-2">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="text-2xl font-extrabold tracking-tight">{t.sound.eq.title}</h3>
+          <p className="mt-1 text-[14px] text-[#a0a0a0]">{t.sound.eq.sub}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => choose('flat')}
+          className="chip h-9 text-[13px]"
+          disabled={preset === 'flat'}
+          style={{ opacity: preset === 'flat' ? 0.4 : 1 }}
+        >
+          {t.sound.eq.reset}
+        </button>
+      </div>
+
+      <div role="group" aria-label={t.sound.eq.title} className="scroll-hide -mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+        {ids.map((id) => (
           <button
             key={id}
             type="button"
             aria-pressed={preset === id}
-            onClick={() => choose(id)}
-            className={cn(
-              'h-10 rounded-full px-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent',
-              preset === id ? 'bg-primary text-white' : 'border border-border text-muted-foreground hover:text-foreground',
-            )}
+            disabled={id === 'custom' && preset !== 'custom'}
+            onClick={() => id !== 'custom' && choose(id)}
+            className="chip shrink-0 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-[var(--card-2)]"
           >
             {t.sound.eq.presets[id]}
           </button>
         ))}
       </div>
 
-      <div className="mt-auto grid grid-cols-10 gap-1.5 sm:gap-3">
-        {BANDS.map((band, i) => {
-          const gain = gains[i]
-          const pct = ((gain + 12) / 24) * 100
-          return (
-            <label key={band} className="flex flex-col items-center gap-2">
-              <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-                {gain > 0 ? `+${gain}` : gain}
-              </span>
-              <span className="relative h-44 w-full max-w-9 overflow-hidden rounded-lg bg-[#1d1311] md:h-52">
-                <span className="absolute inset-x-0 top-1/2 h-px bg-white/10" aria-hidden="true" />
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-0 bottom-0 rounded-lg bg-gradient-to-t from-primary to-[#ff5c6a] transition-[height] duration-300"
-                  style={{ height: `${pct}%` }}
-                />
-                <input
-                  type="range"
-                  min={-12}
-                  max={12}
-                  step={1}
-                  value={gain}
-                  aria-label={`${band} Hz`}
-                  onChange={(e) => {
-                    const next = [...gains]
-                    next[i] = Number(e.target.value)
-                    setGains(next)
-                    setPreset('custom')
-                  }}
-                  className="absolute inset-0 h-full w-full cursor-ns-resize opacity-0 [writing-mode:vertical-lr] [direction:rtl]"
-                />
-              </span>
-              <span className="font-mono text-[11px] text-muted-foreground">{band}</span>
-            </label>
-          )
-        })}
+      <div className="relative mt-6 overflow-hidden rounded-xl bg-[#141414]">
+        <div aria-hidden="true" className="absolute inset-x-[2%] bottom-0 flex h-[58%] items-end gap-[5px]">
+          {bars.map((b, i) => (
+            <span
+              key={i}
+              className="flex-1 rounded-t-[3px] bg-[var(--accent)] opacity-[0.16]"
+              style={{
+                height: '100%',
+                transformOrigin: 'bottom',
+                transform: playing ? undefined : `scaleY(${b.amp * 0.5})`,
+                animation: playing ? `spectrum ${b.dur}s ease-in-out ${b.delay}s infinite` : 'none',
+                ['--amp' as string]: b.amp,
+              }}
+            />
+          ))}
+        </div>
+        <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="relative block w-full select-none touch-none" role="group" aria-label={t.sound.eq.title}>
+          <defs>
+            <linearGradient id="eq-fill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="var(--accent)" stopOpacity="0.4" />
+              <stop offset="1" stopColor="var(--accent)" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {[-12, -6, 0, 6, 12].map((db) => (
+            <g key={db}>
+              <line x1="0" x2={W} y1={yOf(db)} y2={yOf(db)} stroke={db === 0 ? '#5a5a5a' : '#2c2c2c'} strokeDasharray={db === 0 ? undefined : '3 5'} />
+              <text x={W - 6} y={yOf(db) - 5} textAnchor="end" fontSize="11" fill="#777" fontFamily="var(--font-geist-mono)">
+                {db > 0 ? `+${db}` : db}
+              </text>
+            </g>
+          ))}
+          <path d={curve.area} fill="url(#eq-fill)" />
+          <path d={curve.line} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
+          {vals.map((v, i) => (
+            <g
+              key={i}
+              role="slider"
+              tabIndex={0}
+              aria-label={`${HZ[i]}`}
+              aria-valuemin={-12}
+              aria-valuemax={12}
+              aria-valuenow={Number(target[i].toFixed(1))}
+              aria-valuetext={`${fmt(target[i])} dB`}
+              onPointerDown={(e) => onDown(e, i)}
+              onPointerMove={(e) => onMove(e, i)}
+              onPointerUp={() => setDrag(null)}
+              onPointerCancel={() => setDrag(null)}
+              onKeyDown={(e) => onKey(e, i)}
+              className="cursor-grab outline-none active:cursor-grabbing [&:focus-visible>circle:nth-child(2)]:stroke-white"
+              style={{ touchAction: 'none' }}
+            >
+              <circle cx={XS[i]} cy={yOf(v)} r="26" fill="transparent" />
+              <circle cx={XS[i]} cy={yOf(v)} r={drag === i ? 14 : 11} fill="#151515" stroke="var(--accent)" strokeWidth="2.5" style={{ transition: 'r 0.15s' }} />
+              <circle cx={XS[i]} cy={yOf(v)} r="4.5" fill="var(--accent)" />
+            </g>
+          ))}
+        </svg>
       </div>
-    </Card>
+
+      <div className="mt-3 grid grid-cols-5 gap-2">
+        {vals.map((v, i) => (
+          <div key={i} className="rounded-xl bg-[#262626] px-1 py-3 text-center">
+            <div className="font-mono text-[15px] font-bold tabular-nums sm:text-[17px]">{fmt(Math.round(v * 10) / 10)}</div>
+            <div className="mt-0.5 text-[11px] font-semibold text-[#8a8a8a] sm:text-[12px]">{HZ[i]}</div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-[13.5px] text-[#8a8a8a]">{t.sound.eq.hint}</p>
+    </div>
   )
+}
+
+/* ------------------------------------------------------------------ crossfade */
+
+type CurveId = 'linear' | 'smooth' | 'ultra'
+const CW = 360
+const CH = 150
+const CP = 14
+
+function curveFns(id: CurveId, hard: boolean) {
+  if (hard) return { inn: (t: number) => (t < 0.5 ? 0 : 1), out: (t: number) => (t < 0.5 ? 1 : 0) }
+  if (id === 'linear') return { inn: (t: number) => t, out: (t: number) => 1 - t }
+  if (id === 'smooth') return { inn: (t: number) => Math.sin((t * Math.PI) / 2), out: (t: number) => Math.cos((t * Math.PI) / 2) }
+  return { inn: (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t), out: (t: number) => 0.5 + 0.5 * Math.cos(Math.PI * t) }
 }
 
 function Crossfade() {
   const { t } = useI18n()
-  const [seconds, setSeconds] = useState(6)
-  const overlap = (seconds / 12) * 40
+  const [dur, setDur] = useState(5.5)
+  const [curve, setCurve] = useState<CurveId>('ultra')
+
+  const paths = useMemo(() => {
+    const f = curveFns(curve, dur === 0)
+    const n = 60
+    const line = (g: (x: number) => number) =>
+      Array.from({ length: n + 1 }, (_, i) => {
+        const x = i / n
+        return `${i === 0 ? 'M' : 'L'}${(x * CW).toFixed(1)} ${(CH - CP - g(x) * (CH - CP * 2)).toFixed(1)}`
+      }).join('')
+    const inn = line(f.inn)
+    return { inn, out: line(f.out), area: `${inn} L${CW} ${CH - CP} L0 ${CH - CP} Z` }
+  }, [curve, dur])
+
+  const sweep = Math.max(1.4, dur * 0.55)
 
   return (
-    <Card>
-      <CardHead title={t.sound.crossfade.title} desc={t.sound.crossfade.desc} />
-      <div aria-hidden="true" className="relative h-14">
-        <div className="absolute inset-y-2 left-0 rounded-lg bg-gradient-to-r from-[#ff5c6a]/70 to-transparent" style={{ right: `${50 - overlap / 2}%` }} />
-        <div className="absolute inset-y-2 right-0 rounded-lg bg-gradient-to-l from-primary/80 to-transparent" style={{ left: `${50 - overlap / 2}%` }} />
+    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-7 lg:col-span-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-xl font-extrabold tracking-tight">{t.sound.xfade.title}</h3>
+        <span className="font-mono text-[15px] font-bold tabular-nums text-[var(--accent)]">
+          {dur === 0 ? '0 s' : `${dur.toFixed(1)} s`}
+        </span>
       </div>
-      <label className="flex items-center gap-4">
-        <span className="shrink-0 text-sm text-muted-foreground">{t.sound.crossfade.length}</span>
-        <input
-          type="range"
-          min={0}
-          max={12}
-          value={seconds}
-          onChange={(e) => setSeconds(Number(e.target.value))}
-          className="h-1 w-full cursor-pointer accent-[#e5192e]"
-        />
-        <output className="w-12 shrink-0 text-right font-mono text-sm tabular-nums">
-          {seconds === 0 ? t.sound.crossfade.off : `${seconds} ${t.sound.crossfade.unit}`}
-        </output>
+
+      <div className="relative mt-4 overflow-hidden rounded-xl bg-[#141414]">
+        <svg viewBox={`0 0 ${CW} ${CH}`} className="block w-full" role="img" aria-label={`${t.sound.xfade.title}: ${t.sound.xfade.curves[curve]}`}>
+          <path d={paths.area} fill="var(--accent)" opacity="0.1" />
+          <path d={paths.out} fill="none" stroke="#8a8a8a" strokeWidth="2.5" strokeLinecap="round" />
+          <path d={paths.inn} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <span
+            className="absolute inset-y-0 w-px bg-white/70"
+            style={{ left: 0, animation: `sweep ${sweep}s linear infinite` }}
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex items-center gap-5 text-[12.5px] font-bold">
+        <span className="inline-flex items-center gap-2 text-[#b3b3b3]">
+          <span className="h-0.5 w-5 rounded-full bg-[#8a8a8a]" aria-hidden="true" />
+          {t.sound.xfade.out}
+        </span>
+        <span className="inline-flex items-center gap-2 text-[var(--accent)]">
+          <span className="h-0.5 w-5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+          {t.sound.xfade.in}
+        </span>
+      </div>
+
+      <label className="mt-5 block text-[13px] font-bold text-[#b3b3b3]" htmlFor="xfade-len">
+        {t.sound.xfade.length}
       </label>
-    </Card>
+      <input
+        id="xfade-len"
+        type="range"
+        min={0}
+        max={12}
+        step={0.5}
+        value={dur}
+        onChange={(e) => setDur(Number(e.target.value))}
+        className="rng mt-3 w-full"
+        style={{ ['--fill' as string]: `${(dur / 12) * 100}%` }}
+      />
+      <div className="mt-1.5 flex justify-between font-mono text-[11px] text-[#777]">
+        <span>0 s</span>
+        <span>6 s</span>
+        <span>12 s</span>
+      </div>
+
+      <p className="mt-5 text-[13px] font-bold text-[#b3b3b3]" id="xfade-curve">
+        {t.sound.xfade.curve}
+      </p>
+      <div role="radiogroup" aria-labelledby="xfade-curve" className="mt-2.5 flex flex-wrap gap-2">
+        {(['linear', 'smooth', 'ultra'] as CurveId[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={curve === id}
+            aria-selected={curve === id}
+            onClick={() => setCurve(id)}
+            className="chip h-9 text-[13px]"
+          >
+            {t.sound.xfade.curves[id]}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
+
+/* ------------------------------------------------------------------ normalization */
+
+const LUFS = { quiet: -18, standard: -14, loud: -11 } as const
+type LufsId = keyof typeof LUFS
+const pct = (v: number) => ((v + 30) / 24) * 100
 
 function Normalization() {
   const { t } = useI18n()
   const [on, setOn] = useState(true)
-  const [target, setTarget] = useState<'quiet' | 'standard' | 'loud'>('standard')
-  const lufs = { quiet: -18, standard: -14, loud: -11 }[target]
-  const tracks = [38, 92, 55, 78, 30, 86]
-  const level = ((lufs + 24) / 16) * 100
+  const [tgt, setTgt] = useState<LufsId>('standard')
+  const level = LUFS[tgt]
+  const rows = [
+    { label: t.sound.norm.a, raw: -24 },
+    { label: t.sound.norm.b, raw: -9 },
+  ]
 
   return (
-    <Card>
-      <div className="flex items-start justify-between gap-4">
-        <CardHead title={t.sound.norm.title} desc={t.sound.norm.desc} />
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label={t.sound.norm.title}
-          onClick={() => setOn(!on)}
-          className={cn(
-            'relative h-7 w-12 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-accent',
-            on ? 'bg-primary' : 'bg-[#2a1c1a]',
-          )}
-        >
-          <span className={cn('absolute top-1 size-5 rounded-full bg-white transition-all', on ? 'left-6' : 'left-1')} />
-        </button>
+    <div className="min-w-0 rounded-2xl bg-[#1e1e1e] p-6 md:p-7 lg:col-span-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-xl font-extrabold tracking-tight">{t.sound.norm.title}</h3>
+          <p className="mt-1 text-[14px] text-[#a0a0a0]">{t.sound.norm.sub}</p>
+        </div>
+        <div role="group" aria-label={t.sound.norm.title} className="flex shrink-0 rounded-full bg-[#2b2b2b] p-1">
+          {[true, false].map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              aria-pressed={on === v}
+              onClick={() => setOn(v)}
+              className={cn(
+                'h-8 rounded-full px-3.5 text-[12px] font-extrabold transition-colors',
+                on === v ? 'bg-white text-[#121212]' : 'text-[#b3b3b3] hover:text-white',
+              )}
+            >
+              {v ? t.sound.norm.on : t.sound.norm.off}
+            </button>
+          ))}
+        </div>
       </div>
-      <div aria-hidden="true" className="flex h-16 items-end gap-2">
-        {tracks.map((h, i) => (
-          <span
-            key={i}
-            className="w-full rounded-md bg-[#ff5c6a]/80 transition-[height] duration-500"
-            style={{ height: `${on ? level : h}%` }}
-          />
-        ))}
+
+      <div className="mt-6 space-y-5">
+        {rows.map((r) => {
+          const v = on ? level : r.raw
+          return (
+            <div key={r.label}>
+              <div className="mb-2 flex justify-between text-[13px] font-semibold text-[#b3b3b3]">
+                <span>{r.label}</span>
+                <span className="font-mono tabular-nums text-white">{v} LUFS</span>
+              </div>
+              <div className="relative h-3 overflow-hidden rounded-full bg-[#2b2b2b]">
+                <div
+                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-700 ease-[var(--ease)]"
+                  style={{ width: `${pct(v)}%`, opacity: on ? 1 : 0.55 }}
+                />
+                <span
+                  className="absolute inset-y-0 w-0.5 bg-white transition-opacity duration-300"
+                  style={{ left: `${pct(level)}%`, opacity: on ? 0.9 : 0 }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
-      <div className="flex gap-1 rounded-full border border-border p-1">
-        {(['quiet', 'standard', 'loud'] as const).map((id) => (
+
+      <p className="mt-6 text-[13px] font-bold text-[#b3b3b3]" id="norm-target">
+        {t.sound.norm.target}
+      </p>
+      <div role="radiogroup" aria-labelledby="norm-target" className="mt-2.5 flex flex-wrap gap-2">
+        {(Object.keys(LUFS) as LufsId[]).map((id) => (
           <button
             key={id}
             type="button"
-            aria-pressed={target === id}
+            role="radio"
+            aria-checked={tgt === id}
+            aria-selected={tgt === id}
             disabled={!on}
-            onClick={() => setTarget(id)}
-            className={cn(
-              'h-9 flex-1 rounded-full text-sm transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-accent',
-              target === id ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
-            )}
+            onClick={() => setTgt(id)}
+            className="chip h-9 text-[13px] disabled:opacity-40"
           >
-            {t.sound.norm.targets[id]}
+            {t.sound.norm.targets[id]} ({LUFS[id]})
           </button>
         ))}
       </div>
-    </Card>
+    </div>
+  )
+}
+
+export function Sound() {
+  const { t } = useI18n()
+  return (
+    <section id="sound" aria-labelledby="sound-h" className="relative bg-[#121212] py-20 md:py-28">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
+        <Rise>
+          <h2 id="sound-h" className="h-section max-w-[16ch]">
+            {t.sound.title}
+          </h2>
+          <p className="mt-4 max-w-[40rem] text-[17px] text-[#b3b3b3]">{t.sound.lead}</p>
+        </Rise>
+        <div className="mt-10 grid gap-4 lg:grid-cols-12">
+          <Equalizer />
+          <Crossfade />
+          <Normalization />
+        </div>
+      </div>
+    </section>
   )
 }
