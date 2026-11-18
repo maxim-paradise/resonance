@@ -3,30 +3,31 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useI18n } from './i18n'
+import { ScrollWave } from './scroll-wave'
 
 const IDS = ['top', 'tour', 'features', 'themes', 'sound', 'lyrics', 'setup', 'download'] as const
 
 /**
- * Page position: a thin accent line along the top edge shows how far you have read,
- * and a column of dots on the right edge marks the sections. Click a dot to jump.
+ * Page position: a column of dots on the right edge marks the sections (click one to jump), and
+ * the wave in the corner moves with the scroll. The Download section is revealed from underneath
+ * the one above it, so it is "reached" when that one has risen away, not by its own top edge.
  */
 export function Rail() {
   const { t } = useI18n()
-  const [progress, setProgress] = useState(0)
   const [current, setCurrent] = useState<string>('top')
 
   useEffect(() => {
     let raf = 0
     const update = () => {
       raf = 0
-      const max = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0)
-      // the section whose top is the last one above the middle of the screen
-      const mid = window.innerHeight * 0.45
+      const vh = window.innerHeight
+      const mid = vh * 0.45
       let found: string = IDS[0]
       for (const id of IDS) {
         const el = document.getElementById(id)
-        if (el && el.getBoundingClientRect().top <= mid) found = id
+        if (!el) continue
+        const edge = id === 'download' ? el.previousElementSibling?.getBoundingClientRect().bottom ?? Infinity : el.getBoundingClientRect().top
+        if (edge <= (id === 'download' ? vh * 0.6 : mid)) found = id
       }
       setCurrent(found)
     }
@@ -45,13 +46,7 @@ export function Rail() {
 
   return (
     <>
-      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px]">
-        <div
-          className="h-full origin-left bg-[var(--accent)] transition-[width] duration-150 ease-out"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
-
+      <ScrollWave />
       <nav
         aria-label={t.rail.label}
         className="fixed right-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-end gap-1 xl:flex"
@@ -66,11 +61,7 @@ export function Rail() {
               aria-current={active ? 'true' : undefined}
               className="group flex items-center gap-3 py-1.5 pl-6"
             >
-              <span
-                className={cn(
-                  'translate-x-2 rounded-full bg-[#2a2a2a] px-3 py-1 text-[12px] font-bold text-white opacity-0 shadow-lg transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100',
-                )}
-              >
+              <span className="translate-x-2 rounded-full bg-[#2a2a2a] px-3 py-1 text-[12px] font-bold text-white opacity-0 shadow-lg transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
                 {t.rail[id]}
               </span>
               <span

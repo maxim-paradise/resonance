@@ -16,13 +16,16 @@ export default function Page() {
     <LanguageProvider>
       <Navbar />
       <main id="main">
-        <Hero />
-        <Tour />
-        <Features />
-        <Themes />
-        <Sound />
-        <Lyrics />
-        <Setup />
+        {/* everything above Download is one opaque sheet that lifts away to uncover it */}
+        <div className="relative z-10 bg-[#151515] shadow-[0_40px_90px_rgb(0_0_0/0.6)]">
+          <Hero />
+          <Tour />
+          <Features />
+          <Themes />
+          <Sound />
+          <Lyrics />
+          <Setup />
+        </div>
         <Download />
       </main>
       <Footer />

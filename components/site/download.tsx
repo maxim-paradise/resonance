@@ -2,6 +2,7 @@
 
 import { Download as DownloadIcon } from 'lucide-react'
 import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { DOWNLOADS, type OS } from '@/lib/links'
 import { useOS } from './hooks'
@@ -13,12 +14,78 @@ const ORDER: OS[] = ['windows', 'macos', 'linux']
 export function Download() {
   const { t } = useI18n()
   const mine = useOS()
+  const ref = useRef<HTMLElement>(null)
+  // when the section fits on one screen it waits pinned to the bottom of the viewport, underneath
+  // the content above, and is uncovered as that content scrolls up and away
+  const [under, setUnder] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setUnder(window.matchMedia('(min-width: 768px)').matches && el.offsetHeight <= window.innerHeight - 8)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (!under) {
+      el.inert = false
+      return
+    }
+    let raf = 0
+    // while it is still hidden underneath, keep it out of the tab order and away from the pointer
+    const update = () => {
+      raf = 0
+      const prev = el.previousElementSibling
+      el.inert = prev ? prev.getBoundingClientRect().bottom > window.innerHeight + 40 : false
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    // anchor links would otherwise scroll to the pinned position, which is not where it is revealed
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href="#download"]')
+      const prev = el.previousElementSibling
+      if (!a || !prev) return
+      e.preventDefault()
+      const prevBottom = prev.getBoundingClientRect().bottom + window.scrollY
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      window.scrollTo({ top: Math.min(max, Math.max(0, prevBottom - (window.innerHeight - el.offsetHeight))), behavior: 'smooth' })
+    }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    document.addEventListener('click', onClick)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      document.removeEventListener('click', onClick)
+      if (raf) cancelAnimationFrame(raf)
+      el.inert = false
+    }
+  }, [under])
 
   return (
-    <section id="download" aria-labelledby="download-h" className="relative isolate overflow-hidden bg-[#121212] py-20 md:py-28">
+    <section
+      ref={ref}
+      id="download"
+      aria-labelledby="download-h"
+      className={cn(
+        'isolate overflow-hidden bg-[#121212] py-20 md:py-28',
+        under ? 'sticky bottom-0 z-0' : 'relative',
+      )}
+    >
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(700px_320px_at_50%_0%,rgb(var(--accent-rgb)/0.16),transparent_70%)]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(760px_340px_at_50%_42%,rgb(var(--accent-rgb)/0.15),transparent_70%)]"
       />
       <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
         <Reveal className="mx-auto max-w-[44rem] text-center">
