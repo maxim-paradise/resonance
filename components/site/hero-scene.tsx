@@ -2,137 +2,173 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { RS_PATHS } from './logo'
+import { RS_PATH } from './logo'
 
-const COVERS = [
-  '/images/ooes-cover.png',
-  '/images/playlists/stalker.png',
-  '/images/playlists/vajbik.png',
-  '/images/playlists/dm.png',
-  '/images/playlists/p1448.png',
-  '/images/playlists/hardstyle.png',
-]
+/*
+ * One canvas for the whole hero: a field of dots that ripples like water behind, and a dark chrome
+ * sphere in front whose surface carries two interfering waves, one per service. The sphere sits on
+ * the element with id="hero-anchor"; the canvas ignores the pointer and listens on the window.
+ * prefers-reduced-motion is deliberately not honoured (see motion.tsx).
+ */
 
-/** x, y, z, size, tilt around Y, depth factor for the pointer parallax */
-const LAYOUT: [number, number, number, number, number, number][] = [
-  [-2.35, 1.9, 0.9, 1.1, 0.35, 1.0],
-  [2.4, 2.0, -0.7, 1.25, -0.3, 0.5],
-  [2.5, -1.6, 1.0, 1.0, -0.32, 1.1],
-  [-2.45, -1.95, 0.2, 1.15, 0.3, 0.7],
-  [-0.3, -2.4, 1.6, 0.85, 0.12, 1.4],
-  [1.0, 2.35, 1.9, 0.8, -0.2, 1.5],
-]
+const SPHERE_VERT = /* glsl */ `
+  uniform float uTime;
+  uniform float uAmp;
+  uniform vec3 uPointer;
+  uniform float uPointerGain;
+  varying vec3 vNormal;
+  varying vec3 vWorld;
+  varying vec2 vUv;
+  varying float vH;
 
-function roundedPlane(size: number, radius: number) {
-  const h = size / 2
-  const s = new THREE.Shape()
-  s.moveTo(-h + radius, -h)
-  s.lineTo(h - radius, -h)
-  s.quadraticCurveTo(h, -h, h, -h + radius)
-  s.lineTo(h, h - radius)
-  s.quadraticCurveTo(h, h, h - radius, h)
-  s.lineTo(-h + radius, h)
-  s.quadraticCurveTo(-h, h, -h, h - radius)
-  s.lineTo(-h, -h + radius)
-  s.quadraticCurveTo(-h, -h, -h + radius, -h)
-  const g = new THREE.ShapeGeometry(s, 8)
-  const pos = g.attributes.position
-  const uv = g.attributes.uv
-  for (let i = 0; i < pos.count; i++) {
-    uv.setXY(i, (pos.getX(i) + h) / size, (pos.getY(i) + h) / size)
+  const vec3 SRC_A = vec3(-0.80, 0.22, 0.56);
+  const vec3 SRC_B = vec3( 0.80, -0.12, 0.58);
+
+  float height(vec3 n) {
+    vec3 a = normalize(SRC_A);
+    vec3 b = normalize(SRC_B);
+    float da = acos(clamp(dot(n, a), -1.0, 1.0));
+    float db = acos(clamp(dot(n, b), -1.0, 1.0));
+    float wa = sin(da * 19.0 - uTime * 1.7) / (1.0 + da * 2.4);
+    float wb = sin(db * 19.0 - uTime * 1.9 + 1.2) / (1.0 + db * 2.4);
+    float h = (wa + wb) * 0.5;
+    // the pointer is a tuning fork: the side it points at swells
+    float near = smoothstep(0.2, 1.0, dot(n, normalize(uPointer)));
+    return h * (1.0 + uPointerGain * near);
   }
-  uv.needsUpdate = true
-  return g
-}
 
-function grooveCanvas() {
-  const c = document.createElement('canvas')
-  c.width = c.height = 1024
-  const g = c.getContext('2d')!
-  g.fillStyle = '#1c1c1c'
-  g.fillRect(0, 0, 1024, 1024)
-  for (let r = 200; r < 506; r += 2.4) {
-    g.strokeStyle = `rgba(255,255,255,${0.05 + ((r * 7919) % 100) / 100 * 0.1})`
-    g.lineWidth = 1.1
-    g.beginPath()
-    g.arc(512, 512, r, 0, Math.PI * 2)
-    g.stroke()
+  vec3 displaced(vec3 n) {
+    return n * (1.0 + uAmp * height(n));
   }
-  for (const r of [262, 331, 398, 452]) {
-    g.strokeStyle = 'rgba(0,0,0,0.95)'
-    g.lineWidth = 4
-    g.beginPath()
-    g.arc(512, 512, r, 0, Math.PI * 2)
-    g.stroke()
+
+  void main() {
+    vec3 n = normalize(position);
+    vec3 t = normalize(cross(n, vec3(0.0, 1.0, 0.013)));
+    vec3 b = cross(n, t);
+    float e = 0.012;
+    vec3 p0 = displaced(n);
+    vec3 p1 = displaced(normalize(n + t * e));
+    vec3 p2 = displaced(normalize(n + b * e));
+    vNormal = normalize(normalMatrix * normalize(cross(p1 - p0, p2 - p0)));
+    vH = height(n);
+    vUv = uv;
+    vec4 world = modelMatrix * vec4(p0, 1.0);
+    vWorld = world.xyz;
+    gl_Position = projectionMatrix * viewMatrix * world;
   }
-  return c
-}
+`
 
-/** two bright wedges, kept still while the record turns under them, like light on real vinyl */
-function sheenCanvas() {
-  const c = document.createElement('canvas')
-  c.width = c.height = 1024
-  const g = c.getContext('2d')!
-  const cone = g.createConicGradient(0.35, 512, 512)
-  const stops: [number, number][] = [
-    [0, 0], [0.04, 0.12], [0.085, 0.5], [0.13, 0.12], [0.17, 0],
-    [0.5, 0], [0.54, 0.1], [0.585, 0.4], [0.63, 0.1], [0.67, 0], [1, 0],
-  ]
-  for (const [o, a] of stops) cone.addColorStop(o, `rgba(255,255,255,${a})`)
-  g.fillStyle = cone
-  g.fillRect(0, 0, 1024, 1024)
-  g.globalCompositeOperation = 'destination-in'
-  const mask = g.createRadialGradient(512, 512, 190, 512, 512, 510)
-  mask.addColorStop(0, 'rgba(0,0,0,0)')
-  mask.addColorStop(0.03, 'rgba(0,0,0,1)')
-  mask.addColorStop(0.97, 'rgba(0,0,0,1)')
-  mask.addColorStop(1, 'rgba(0,0,0,0)')
-  g.fillStyle = mask
-  g.fillRect(0, 0, 1024, 1024)
-  return c
-}
+const SPHERE_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3 uCoral;
+  uniform sampler2D uLogo;
+  uniform float uLogoU;
+  varying vec3 vNormal;
+  varying vec3 vWorld;
+  varying vec2 vUv;
+  varying float vH;
 
-function glowCanvas() {
+  void main() {
+    vec3 N = normalize(vNormal);
+    vec3 V = normalize(cameraPosition - vWorld);
+    if (dot(N, V) < 0.0) N = -N;
+    vec3 R = reflect(-V, N);
+
+    // a little studio: a soft top box, a coral kicker low on the left, a cold fill on the right
+    float top = pow(max(dot(R, normalize(vec3(0.2, 1.0, 0.5))), 0.0), 7.0);
+    float side = pow(max(dot(R, normalize(vec3(1.0, 0.1, 0.3))), 0.0), 16.0);
+    float kick = pow(max(dot(R, normalize(vec3(-0.9, -0.5, 0.5))), 0.0), 9.0);
+    float horizon = smoothstep(-0.2, 0.9, R.y);
+
+    vec3 col = mix(vec3(0.035), vec3(0.17, 0.17, 0.18), horizon);
+    col += vec3(0.80, 0.82, 0.86) * top * 0.55;
+    col += vec3(0.60, 0.66, 0.75) * side * 0.35;
+    col += uCoral * kick * 0.5;
+
+    float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+    col += uCoral * fres * 0.55;
+
+    // crests glow coral where the two waves reinforce each other
+    float crest = smoothstep(0.35, 1.0, vH);
+    col += uCoral * crest * 0.14;
+
+    // the RS mark, pressed into the front of the sphere
+    vec2 lp = vec2((vUv.x - uLogoU) * 7.0 + 0.5, (vUv.y - 0.5) * 3.5 + 0.5);
+    float inside = step(0.0, lp.x) * step(lp.x, 1.0) * step(0.0, lp.y) * step(lp.y, 1.0);
+    float mark = texture2D(uLogo, lp).a * inside;
+    col = mix(col, uCoral * 0.9, mark * 0.72);
+
+    gl_FragColor = vec4(col, 1.0);
+    #include <colorspace_fragment>
+  }
+`
+
+const BG_VERT = /* glsl */ `
+  void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+`
+
+const BG_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec2 uRes;       // in device pixels
+  uniform float uTime;
+  uniform float uDpr;
+  uniform vec2 uSphere;    // sphere centre, device px, y down
+  uniform float uSphereR;
+  uniform vec2 uPointer;   // device px, y down, negative when away
+  uniform float uPointerOn;
+  uniform vec3 uCoral;
+
+  float ring(vec2 p, vec2 c, float k, float speed, float phase, float decay) {
+    float d = length(p - c);
+    return sin(d * k - uTime * speed + phase) * exp(-d * decay);
+  }
+
+  void main() {
+    vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+    float cell = 24.0 * uDpr;
+    vec2 g = floor(frag / cell);
+    vec2 centre = (g + 0.5) * cell;
+    vec2 off = frag - centre;
+
+    float R = uSphereR;
+    // two sources either side of the sphere: the two services
+    float w = 0.0;
+    w += ring(centre, uSphere + vec2(-0.55 * R, 0.0), 0.021 / uDpr, 1.5, 0.0, 0.0016 / uDpr);
+    w += ring(centre, uSphere + vec2( 0.55 * R, 0.0), 0.021 / uDpr, 1.5, 1.9, 0.0016 / uDpr);
+    // the pointer drops its own small ripples
+    w += uPointerOn * 0.7 * ring(centre, uPointer, 0.05 / uDpr, 3.2, 0.0, 0.0065 / uDpr);
+    w *= 0.62;
+
+    // nothing under the sphere itself, it is drawn on top and would show through its edge
+    float dS = length(centre - uSphere);
+    float clear = smoothstep(R * 0.92, R * 1.35, dS);
+
+    float crest = clamp(w * 0.5 + 0.5, 0.0, 1.0);
+    float radius = (1.1 + 1.9 * crest * crest) * uDpr;
+    float d = length(off);
+    float dotA = 1.0 - smoothstep(radius - 0.8 * uDpr, radius + 0.4 * uDpr, d);
+
+    // soft vignette so the field dies out towards the edges of the hero
+    vec2 uv = frag / uRes;
+    float edge = smoothstep(0.0, 0.12, uv.x) * smoothstep(1.0, 0.88, uv.x) * smoothstep(1.0, 0.72, uv.y);
+
+    float lift = clamp(w, 0.0, 1.0);
+    vec3 grey = vec3(0.62, 0.62, 0.64);
+    vec3 col = mix(grey, uCoral, pow(lift, 1.4) * 0.95);
+    float a = dotA * clear * edge * (0.16 + 0.7 * crest * crest);
+    gl_FragColor = vec4(col, a);
+  }
+`
+
+function logoCanvas() {
   const c = document.createElement('canvas')
   c.width = c.height = 512
   const g = c.getContext('2d')!
-  const r = g.createRadialGradient(256, 256, 0, 256, 256, 256)
-  r.addColorStop(0, 'rgba(255,155,138,0.42)')
-  r.addColorStop(0.5, 'rgba(255,155,138,0.12)')
-  r.addColorStop(1, 'rgba(255,155,138,0)')
-  g.fillStyle = r
-  g.fillRect(0, 0, 512, 512)
-  return c
-}
-
-function labelCanvas() {
-  const c = document.createElement('canvas')
-  c.width = c.height = 512
-  const g = c.getContext('2d')!
-  const grad = g.createRadialGradient(200, 180, 20, 256, 256, 256)
-  grad.addColorStop(0, '#ffc3b8')
-  grad.addColorStop(1, '#ff8d7b')
-  g.fillStyle = grad
-  g.beginPath()
-  g.arc(256, 256, 256, 0, Math.PI * 2)
-  g.fill()
-  g.strokeStyle = 'rgba(42,15,11,0.25)'
-  g.lineWidth = 3
-  g.beginPath()
-  g.arc(256, 256, 236, 0, Math.PI * 2)
-  g.stroke()
-  g.save()
   g.translate(256, 256)
   g.scale(0.4, 0.4)
   g.translate(-512, -512)
-  g.fillStyle = '#2a0f0b'
-  for (const d of RS_PATHS) g.fill(new Path2D(d), 'evenodd')
-  g.restore()
-  g.fillStyle = '#151515'
-  g.beginPath()
-  g.arc(256, 256, 11, 0, Math.PI * 2)
-  g.fill()
+  g.fillStyle = '#fff'
+  g.fill(new Path2D(RS_PATH), 'evenodd')
   return c
 }
 
@@ -153,173 +189,153 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
       return
     }
 
-    // prefers-reduced-motion is deliberately not honoured here, see motion.tsx
-    const reduced = false as boolean
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    const coarse = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2)
+    renderer.setPixelRatio(dpr)
     renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.05
+    renderer.autoClear = false
     renderer.domElement.style.cssText = 'width:100%;height:100%;display:block'
     el.appendChild(renderer.domElement)
 
-    const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60)
-    camera.position.set(0, 0, 11)
-
-    const pmrem = new THREE.PMREMGenerator(renderer)
-    const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
-    scene.environment = envMap
-
-    const key = new THREE.DirectionalLight(0xff9b8a, 2.4)
-    key.position.set(4, 3, 5)
-    const fill = new THREE.DirectionalLight(0xffffff, 1.1)
-    fill.position.set(-4, 2, 3)
-    scene.add(key, fill, new THREE.AmbientLight(0xffffff, 0.25))
-
-    const disposables: { dispose: () => void }[] = [envMap, pmrem]
+    const coral = new THREE.Color('#ff9b8a')
+    const disposables: { dispose: () => void }[] = []
     const track = <T extends { dispose: () => void }>(o: T) => {
       disposables.push(o)
       return o
     }
 
-    const world = new THREE.Group()
-    scene.add(world)
-
-    /* ---------- the record ---------- */
-    const grooves = track(new THREE.CanvasTexture(grooveCanvas()))
-    grooves.colorSpace = THREE.SRGBColorSpace
-    grooves.anisotropy = renderer.capabilities.getMaxAnisotropy()
-    const bump = track(new THREE.CanvasTexture(grooveCanvas()))
-
-    const sideMat = track(new THREE.MeshPhysicalMaterial({ color: 0x0a0a0a, metalness: 0.4, roughness: 0.35 }))
-    const topMat = track(
-      new THREE.MeshPhysicalMaterial({
-        map: grooves,
-        bumpMap: bump,
-        bumpScale: 1.6,
-        color: 0xffffff,
-        metalness: 0.55,
-        roughness: 0.28,
-        clearcoat: 1,
-        clearcoatRoughness: 0.18,
-        envMapIntensity: 1.5,
-      }),
-    )
-    const discGeo = track(new THREE.CylinderGeometry(1.75, 1.75, 0.07, 160, 1))
-    const disc = new THREE.Mesh(discGeo, [sideMat, topMat, sideMat])
-
-    const labelTex = track(new THREE.CanvasTexture(labelCanvas()))
-    labelTex.colorSpace = THREE.SRGBColorSpace
-    labelTex.anisotropy = 8
-    const labelGeo = track(new THREE.CircleGeometry(0.64, 64))
-    const labelMat = track(new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.5, metalness: 0.1 }))
-    const label = new THREE.Mesh(labelGeo, labelMat)
-    label.rotation.x = -Math.PI / 2
-    label.position.y = 0.037
-
-    const spin = new THREE.Group()
-    spin.add(disc, label)
-    const vinyl = new THREE.Group()
-    vinyl.rotation.x = Math.PI / 2
-    vinyl.add(spin)
-
-    const sheenTex = track(new THREE.CanvasTexture(sheenCanvas()))
-    const sheenGeo = track(new THREE.CircleGeometry(1.75, 128))
-    const sheenMat = track(
-      new THREE.MeshBasicMaterial({
-        map: sheenTex,
+    /* ---------- background: a full-screen quad drawn first ---------- */
+    const bgScene = new THREE.Scene()
+    const bgCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    const bgUniforms = {
+      uRes: { value: new THREE.Vector2(1, 1) },
+      uTime: { value: 0 },
+      uDpr: { value: dpr },
+      uSphere: { value: new THREE.Vector2(0, 0) },
+      uSphereR: { value: 100 },
+      uPointer: { value: new THREE.Vector2(-9999, -9999) },
+      uPointerOn: { value: 0 },
+      uCoral: { value: new THREE.Vector3(coral.r, coral.g, coral.b) },
+    }
+    const bgMat = track(
+      new THREE.ShaderMaterial({
+        vertexShader: BG_VERT,
+        fragmentShader: BG_FRAG,
+        uniforms: bgUniforms,
         transparent: true,
-        blending: THREE.AdditiveBlending,
+        depthTest: false,
         depthWrite: false,
-        toneMapped: false,
       }),
     )
-    const sheen = new THREE.Mesh(sheenGeo, sheenMat)
-    sheen.rotation.x = -Math.PI / 2
-    sheen.position.y = 0.0365
-    vinyl.add(sheen)
-    world.add(vinyl)
+    const bgGeo = track(new THREE.PlaneGeometry(2, 2))
+    bgScene.add(new THREE.Mesh(bgGeo, bgMat))
 
-    const glowTex = track(new THREE.CanvasTexture(glowCanvas()))
-    const glowGeo = track(new THREE.PlaneGeometry(5.4, 5.4))
-    const glowMat = track(
-      new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
+    /* ---------- the sphere ---------- */
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50)
+    camera.position.set(0, 0, 10)
+
+    const logoTex = track(new THREE.CanvasTexture(logoCanvas()))
+    logoTex.anisotropy = 8
+    const sphereUniforms = {
+      uTime: { value: 0 },
+      uAmp: { value: 0.034 },
+      uPointer: { value: new THREE.Vector3(0, 0, 1) },
+      uPointerGain: { value: 0 },
+      uCoral: { value: new THREE.Vector3(coral.r, coral.g, coral.b) },
+      uLogo: { value: logoTex },
+      uLogoU: { value: 0.25 },
+    }
+    const sphereMat = track(
+      new THREE.ShaderMaterial({ vertexShader: SPHERE_VERT, fragmentShader: SPHERE_FRAG, uniforms: sphereUniforms }),
     )
-    const glow = new THREE.Mesh(glowGeo, glowMat)
-    glow.position.z = -1.6
-    world.add(glow)
+    const segs = coarse ? 96 : 192
+    const sphereGeo = track(new THREE.SphereGeometry(1, segs, segs))
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat)
+    const holder = new THREE.Group()
+    holder.add(sphere)
+    scene.add(holder)
 
-    /* ---------- sound rings behind the record ---------- */
-    const ringGeo = track(new THREE.RingGeometry(1.0, 1.018, 160))
-    const rings = [0, 1, 2].map(() => {
-      const m = track(new THREE.MeshBasicMaterial({ color: 0xff9b8a, transparent: true, opacity: 0, depthWrite: false }))
-      const mesh = new THREE.Mesh(ringGeo, m)
-      mesh.position.z = -0.4
-      world.add(mesh)
-      return mesh
-    })
+    /* soft coral halo behind the sphere */
+    const haloCanvas = document.createElement('canvas')
+    haloCanvas.width = haloCanvas.height = 256
+    {
+      const g = haloCanvas.getContext('2d')!
+      const r = g.createRadialGradient(128, 128, 0, 128, 128, 128)
+      r.addColorStop(0, 'rgba(255,155,138,0.34)')
+      r.addColorStop(0.55, 'rgba(255,155,138,0.07)')
+      r.addColorStop(1, 'rgba(255,155,138,0)')
+      g.fillStyle = r
+      g.fillRect(0, 0, 256, 256)
+    }
+    const haloTex = track(new THREE.CanvasTexture(haloCanvas))
+    const haloMat = track(
+      new THREE.MeshBasicMaterial({ map: haloTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
+    )
+    const haloGeo = track(new THREE.PlaneGeometry(1, 1))
+    const halo = new THREE.Mesh(haloGeo, haloMat)
+    halo.scale.setScalar(4.6)
+    halo.position.z = -1.4
+    holder.add(halo)
 
-    /* ---------- floating covers ---------- */
-    const loader = new THREE.TextureLoader()
-    const covers = LAYOUT.map(([x, y, z, size, tilt, depth], i) => {
-      const tex = track(loader.load(COVERS[i % COVERS.length]))
-      tex.colorSpace = THREE.SRGBColorSpace
-      tex.anisotropy = 8
-      const mat = track(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 }))
-      const geo = track(roundedPlane(size, size * 0.09))
-      const m = new THREE.Mesh(geo, mat)
-      m.position.set(x, y, z)
-      m.rotation.set(0, tilt, 0)
-      world.add(m)
-      return { m, x, y, z, tilt, depth, phase: i * 1.7 }
-    })
-
-    /* ---------- sizing ---------- */
-    let width = 1
-    let height = 1
-    const resize = () => {
-      const r = el.getBoundingClientRect()
-      width = Math.max(1, Math.round(r.width))
-      height = Math.max(1, Math.round(r.height))
-      renderer.setSize(width, height, false)
-      camera.aspect = width / height
-      const visH = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)
-      const visW = visH * camera.aspect
-      const fit = Math.min(1.1, visW / 6.9, visH / 6.6)
-      world.userData.fit = fit
+    /* ---------- layout: the sphere sits on the anchor element ---------- */
+    let wPx = 1
+    let hPx = 1
+    const anchorPx = { x: 0, y: 0, r: 100 }
+    const layout = () => {
+      const box = el.getBoundingClientRect()
+      wPx = Math.max(1, Math.round(box.width))
+      hPx = Math.max(1, Math.round(box.height))
+      renderer.setSize(wPx, hPx, false)
+      camera.aspect = wPx / hPx
       camera.updateProjectionMatrix()
-      if (reduced) render()
+      bgUniforms.uRes.value.set(wPx * dpr, hPx * dpr)
+
+      const a = document.getElementById('hero-anchor')?.getBoundingClientRect()
+      const ax = a ? a.left + a.width / 2 - box.left : wPx * 0.72
+      const ay = a ? a.top + a.height / 2 - box.top : hPx * 0.5
+      const r = a ? Math.min(a.width, a.height) * 0.36 : Math.min(wPx, hPx) * 0.3
+      anchorPx.x = ax
+      anchorPx.y = ay
+      anchorPx.r = Math.max(60, r)
+
+      const visH = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)
+      const perPx = visH / hPx
+      holder.position.set((ax - wPx / 2) * perPx, -(ay - hPx / 2) * perPx, 0)
+      holder.scale.setScalar(anchorPx.r * perPx)
+      bgUniforms.uSphere.value.set(ax * dpr, ay * dpr)
+      bgUniforms.uSphereR.value = anchorPx.r * dpr
     }
 
-    /* ---------- state ---------- */
-    const pointer = { x: 0, y: 0, tx: 0, ty: 0 }
-    const onPointer = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect()
-      pointer.tx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1))
-      pointer.ty = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1))
+    /* ---------- pointer and scroll ---------- */
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0, ton: 0, px: -9999, py: -9999 }
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
+      const box = el.getBoundingClientRect()
+      const x = e.clientX - box.left
+      const y = e.clientY - box.top
+      const inside = y >= 0 && y <= box.height
+      pointer.px = x
+      pointer.py = y
+      pointer.ton = inside ? 1 : 0
+      pointer.tx = Math.max(-1, Math.min(1, (x - anchorPx.x) / (wPx * 0.5)))
+      pointer.ty = Math.max(-1, Math.min(1, (y - anchorPx.y) / (hPx * 0.5)))
     }
-    if (!reduced) window.addEventListener('pointermove', onPointer, { passive: true })
+    window.addEventListener('pointermove', onMove, { passive: true })
 
     let visible = true
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0 })
     io.observe(el)
 
-    const spinVel = 1.1
-    const clock = new THREE.Clock()
-    let intro = reduced ? 1 : 0
-    let raf = 0
+    const ro = new ResizeObserver(layout)
+    ro.observe(el)
+    const anchor = document.getElementById('hero-anchor')
+    if (anchor) ro.observe(anchor)
+    layout()
 
-    function render() {
-      const fit = (world.userData.fit as number) ?? 1
-      const sy = reduced ? 0 : Math.min(1, window.scrollY / (window.innerHeight * 0.9))
-      world.scale.setScalar(fit * (0.9 + 0.1 * easeOut(intro)))
-      world.position.y = sy * 0.8
-      world.position.z = (1 - easeOut(intro)) * -3
-      world.rotation.y = (1 - easeOut(intro)) * 0.9 + pointer.x * 0.32 + sy * 0.35
-      world.rotation.x = pointer.y * 0.16 - sy * 0.2
-      vinyl.rotation.z = -0.28 // tilt of the record
-      renderer.render(scene, camera)
-    }
+    const clock = new THREE.Clock()
+    let intro = 0
+    let raf = 0
     const easeOut = (t: number) => 1 - Math.pow(1 - Math.min(1, t), 3)
 
     const tick = () => {
@@ -327,49 +343,53 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
       if (!visible || document.hidden) return
       const dt = Math.min(clock.getDelta(), 0.05)
       const t = clock.elapsedTime
-      intro = Math.min(1, intro + dt / 1.5)
-
-      spin.rotation.y -= spinVel * dt
+      intro = Math.min(1, intro + dt / 1.6)
+      const k = easeOut(intro)
 
       pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 4)
       pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 4)
+      pointer.on += (pointer.ton - pointer.on) * Math.min(1, dt * 3)
 
-      rings.forEach((r, i) => {
-        const ph = ((t * 0.32 + i / rings.length) % 1 + 1) % 1
-        r.scale.setScalar(1.25 + ph * 1.5)
-        ;(r.material as THREE.MeshBasicMaterial).opacity = (1 - ph) * 0.32
-      })
+      const scroll = Math.min(1, window.scrollY / (window.innerHeight * 0.9))
 
-      covers.forEach((c) => {
-        c.m.position.x = c.x + pointer.x * 0.22 * c.depth
-        c.m.position.y = c.y + Math.sin(t * 0.8 + c.phase) * 0.09 - pointer.y * 0.16 * c.depth
-        c.m.rotation.y = c.tilt + Math.sin(t * 0.5 + c.phase) * 0.05
-        c.m.rotation.x = Math.cos(t * 0.45 + c.phase) * 0.035
-      })
-      render()
+      sphereUniforms.uTime.value = t
+      sphereUniforms.uAmp.value = 0.034 * (0.3 + 0.7 * k)
+      sphereUniforms.uPointer.value.set(pointer.x * 1.4, -pointer.y * 1.4, 1)
+      sphereUniforms.uPointerGain.value = 0.9 * pointer.on
+
+      // the sphere turns a little towards the pointer and with the scroll, never away from the mark
+      holder.rotation.y = pointer.x * 0.32 + scroll * 0.5 + (1 - k) * 0.9
+      holder.rotation.x = pointer.y * 0.18 - scroll * 0.25
+      const base = anchorPx.r
+      holder.scale.setScalar((base * (0.82 + 0.18 * k) * (visHeightPerPx())) )
+
+      bgUniforms.uTime.value = t
+      bgUniforms.uPointer.value.set(pointer.px * dpr, pointer.py * dpr)
+      bgUniforms.uPointerOn.value = pointer.on
+
+      renderer.clear()
+      renderer.render(bgScene, bgCam)
+      renderer.clearDepth()
+      renderer.render(scene, camera)
     }
 
-    const ro = new ResizeObserver(resize)
-    ro.observe(el)
-    resize()
-    if (reduced) {
-      // a still frame once the covers have loaded
-      const t = window.setTimeout(render, 600)
-      disposables.push({ dispose: () => window.clearTimeout(t) })
-    } else {
-      raf = requestAnimationFrame(tick)
+    function visHeightPerPx() {
+      const visH = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)
+      return visH / hPx
     }
+
+    raf = requestAnimationFrame(tick)
 
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
       io.disconnect()
-      window.removeEventListener('pointermove', onPointer)
+      window.removeEventListener('pointermove', onMove)
       disposables.forEach((d) => d.dispose())
       renderer.dispose()
       renderer.domElement.remove()
     }
   }, [])
 
-  return <div ref={mount} className="absolute inset-0 data-[failed=true]:hidden" />
+  return <div ref={mount} className="absolute inset-0" />
 }

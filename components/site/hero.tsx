@@ -46,12 +46,18 @@ export function Hero() {
         aria-hidden="true"
         className="absolute inset-0 -z-10 bg-[radial-gradient(900px_520px_at_78%_8%,#3a3a3a_0%,transparent_70%),linear-gradient(to_bottom,#2a2a2a_0%,#151515_88%)]"
       />
-      <div
-        aria-hidden="true"
-        className="dot-field absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_30%,black,transparent)]"
-      />
+      {failed ? (
+        <div
+          aria-hidden="true"
+          className="dot-field absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_30%,black,transparent)]"
+        />
+      ) : (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-[5]">
+          <HeroScene onFail={() => setFailed(true)} />
+        </div>
+      )}
 
-      <div className="mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(820px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
+      <div className="relative z-10 mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(820px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
         <div className="min-w-0 lg:col-span-6">
           <h1
             className="h-display animate-rise-in text-[clamp(2.5rem,5vw,4.5rem)]"
@@ -111,12 +117,14 @@ export function Hero() {
           </div>
         </div>
 
+        {/* the 3D sphere is drawn by the canvas behind the page; it sits on this box */}
         <div
-          className="relative -mx-4 h-[380px] min-w-0 sm:h-[480px] lg:-mx-8 lg:col-span-6 lg:h-[660px]"
+          id="hero-anchor"
+          className="relative -mx-4 h-[360px] min-w-0 sm:h-[440px] lg:-mx-8 lg:col-span-6 lg:h-[620px]"
           role="img"
           aria-label={t.hero.sceneAlt}
         >
-          {failed ? <StaticCovers /> : <HeroScene onFail={() => setFailed(true)} />}
+          {failed && <StaticCovers />}
         </div>
       </div>
     </section>
