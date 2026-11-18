@@ -2,7 +2,7 @@
 
 import { Download as DownloadIcon } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { DOWNLOADS, type OS } from '@/lib/links'
 import { useOS } from './hooks'
@@ -10,6 +10,46 @@ import { useI18n } from './i18n'
 import { Reveal, Tilt } from './motion'
 
 const ORDER: OS[] = ['windows', 'macos', 'linux']
+
+/**
+ * While the section waits underneath the sheet above, --p (0 to 1) says how much of it has been
+ * uncovered. Each block takes its own slice of that range: it rises, sharpens and fades in exactly
+ * as the sheet lifts off it, and it is tied to the scroll in both directions.
+ */
+function Appear({
+  under,
+  from,
+  to,
+  className,
+  as: Tag = 'div',
+  children,
+}: {
+  under: boolean
+  from: number
+  to: number
+  className?: string
+  as?: 'div' | 'li'
+  children: ReactNode
+}) {
+  if (!under) {
+    return (
+      <Reveal as={Tag} className={className}>
+        {children}
+      </Reveal>
+    )
+  }
+  const style = {
+    '--t': `clamp(0, calc((var(--p) - ${from}) / ${to - from}), 1)`,
+    opacity: 'var(--t)',
+    transform: 'translate3d(0, calc((1 - var(--t)) * 64px), 0)',
+    filter: 'blur(calc((1 - var(--t)) * 7px))',
+  } as CSSProperties
+  return (
+    <Tag className={className} style={style}>
+      {children}
+    </Tag>
+  )
+}
 
 export function Download() {
   const { t } = useI18n()
@@ -38,14 +78,21 @@ export function Download() {
     if (!el) return
     if (!under) {
       el.inert = false
+      el.style.removeProperty('--p')
       return
     }
     let raf = 0
-    // while it is still hidden underneath, keep it out of the tab order and away from the pointer
     const update = () => {
       raf = 0
       const prev = el.previousElementSibling
-      el.inert = prev ? prev.getBoundingClientRect().bottom > window.innerHeight + 40 : false
+      if (!prev) return
+      const vh = window.innerHeight
+      const bottom = prev.getBoundingClientRect().bottom
+      // how much of the section the sheet has uncovered, as a share of its height
+      const p = Math.min(1, Math.max(0, (vh - bottom) / (el.offsetHeight * 0.92)))
+      el.style.setProperty('--p', p.toFixed(4))
+      // while it is still hidden underneath, keep it out of the tab order and away from the pointer
+      el.inert = bottom > vh + 40
     }
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update)
@@ -79,28 +126,33 @@ export function Download() {
       id="download"
       aria-labelledby="download-h"
       className={cn(
-        'isolate overflow-hidden bg-[#121212] py-20 md:py-28',
+        'isolate overflow-hidden bg-[#121212] py-20 [--p:1] md:py-28',
         under ? 'sticky bottom-0 z-0' : 'relative',
       )}
     >
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10 bg-[radial-gradient(760px_340px_at_50%_42%,rgb(var(--accent-rgb)/0.15),transparent_70%)]"
+        style={under ? { opacity: 'var(--p)' } : undefined}
       />
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-        <Reveal className="mx-auto max-w-[44rem] text-center">
+      <div
+        className="mx-auto max-w-[1240px] px-5 sm:px-8"
+        style={under ? { transform: 'scale(calc(0.94 + 0.06 * var(--p)))', transformOrigin: '50% 100%' } : undefined}
+      >
+        <Appear under={under} from={0.5} to={0.95} className="mx-auto max-w-[44rem] text-center">
           <h2 id="download-h" className="h-section">
             {t.download.title}
           </h2>
           <p className="mx-auto mt-4 max-w-[36rem] text-[17px] text-[#b3b3b3]">{t.download.lead}</p>
-        </Reveal>
+        </Appear>
 
         <ul className="mt-12 grid gap-5 md:grid-cols-3">
           {ORDER.map((id, idx) => {
             const d = DOWNLOADS[id]
             const yours = mine === id
+            const start = 0.04 + idx * 0.1
             return (
-              <Reveal as="li" key={id} delay={idx * 130} y={44} className="min-w-0">
+              <Appear as="li" key={id} under={under} from={start} to={start + 0.5} className="min-w-0">
                 <Tilt max={9} scale={1.02} className="h-full rounded-2xl" innerClassName="h-full rounded-2xl">
                   <div
                     className={cn(
@@ -144,7 +196,7 @@ export function Download() {
                     </p>
                   </div>
                 </Tilt>
-              </Reveal>
+              </Appear>
             )
           })}
         </ul>
