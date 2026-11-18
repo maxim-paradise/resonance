@@ -3,71 +3,52 @@
 import { ArrowRight, Download } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { DOWNLOADS } from '@/lib/links'
 import { useLatestVersion, useOS } from './hooks'
 import { useI18n } from './i18n'
+import { LyricsBackdrop } from './lyrics-backdrop'
 
 const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false })
-
-/** shown only when WebGL is unavailable */
-function StaticCovers() {
-  const covers = ['/images/ooes-cover.png', '/images/playlists/stalker.png', '/images/playlists/vajbik.png']
-  return (
-    <div className="absolute inset-0 grid place-items-center">
-      <div className="relative h-[260px] w-[340px]">
-        {covers.map((src, i) => (
-          <Image
-            key={src}
-            src={src}
-            alt=""
-            width={200}
-            height={200}
-            className="absolute size-[190px] rounded-2xl object-cover shadow-2xl"
-            style={{ left: i * 70, top: i % 2 ? 56 : 0, transform: `rotate(${(i - 1) * 6}deg)` }}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export function Hero() {
   const { t } = useI18n()
   const os = useOS()
   const version = useLatestVersion()
   const [failed, setFailed] = useState(false)
+  const [selected, setSelected] = useState(-1)
+  const control = useRef<{ select: (i: number) => void; pick: (x: number, y: number) => void } | null>(null)
   const dl = DOWNLOADS[os]
+  const layer = selected >= 0 ? t.hero.layers[selected] : null
 
   return (
     <section id="top" className="relative isolate overflow-hidden pt-16">
       {/* a lifted gray at the top fading into the page ground, like a Spotify header */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(900px_520px_at_78%_8%,#3a3a3a_0%,transparent_70%),linear-gradient(to_bottom,#2a2a2a_0%,#151515_88%)]"
+        className="absolute inset-0 -z-20 bg-[radial-gradient(900px_520px_at_78%_8%,#353535_0%,transparent_70%),linear-gradient(to_bottom,#262626_0%,#151515_88%)]"
       />
-      {failed ? (
-        <div
-          aria-hidden="true"
-          className="dot-field absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(70%_60%_at_70%_30%,black,transparent)]"
-        />
-      ) : (
+      <div className="absolute inset-0 -z-10">
+        <LyricsBackdrop lines={t.hero.bgLines} />
+      </div>
+      {!failed && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-[5]">
-          <HeroScene onFail={() => setFailed(true)} />
+          <HeroScene onFail={() => setFailed(true)} onSelect={setSelected} control={control} />
         </div>
       )}
 
-      <div className="relative z-10 mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(820px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
-        <div className="min-w-0 lg:col-span-6">
+      <div className="relative z-10 mx-auto grid max-w-[1240px] items-center gap-6 px-5 pb-12 pt-10 sm:px-8 lg:min-h-[min(860px,100svh)] lg:grid-cols-12 lg:pb-16 lg:pt-6">
+        <div className="min-w-0 lg:col-span-5">
           <h1
-            className="h-display animate-rise-in text-[clamp(2.5rem,5vw,4.5rem)]"
+            className="h-display animate-rise-in text-[clamp(2.5rem,4.6vw,4.25rem)]"
             style={{ animationDelay: '60ms' }}
           >
             {t.hero.title}
           </h1>
 
           <p
-            className="animate-rise-in mt-6 max-w-[32rem] text-[17px] leading-relaxed text-[#c4c4c4] sm:text-lg"
+            className="animate-rise-in mt-6 max-w-[30rem] text-[17px] leading-relaxed text-[#c4c4c4] sm:text-lg"
             style={{ animationDelay: '180ms' }}
           >
             {t.hero.lead}
@@ -117,14 +98,40 @@ export function Hero() {
           </div>
         </div>
 
-        {/* the 3D sphere is drawn by the canvas behind the page; it sits on this box */}
-        <div
-          id="hero-anchor"
-          className="relative -mx-4 h-[360px] min-w-0 sm:h-[440px] lg:-mx-8 lg:col-span-6 lg:h-[620px]"
-          role="img"
-          aria-label={t.hero.sceneAlt}
-        >
-          {failed && <StaticCovers />}
+        {/* the exploded window is drawn by the canvas behind; it is laid out on this box */}
+        <div className="relative min-w-0 lg:col-span-7">
+          <div
+            id="hero-anchor"
+            onClick={(e) => control.current?.pick(e.clientX, e.clientY)}
+            className={cn('relative h-[300px] sm:h-[420px] lg:h-[520px]', !failed && 'cursor-pointer')}
+          >
+            {failed && (
+              <div className="window-frame absolute inset-x-0 top-1/2 -translate-y-1/2">
+                <Image src="/shots/home.jpg" alt={t.hero.sceneAlt} width={1424} height={821} className="block h-auto w-full" priority />
+              </div>
+            )}
+          </div>
+
+          {!failed && (
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <div role="group" aria-label={t.hero.layersLabel} className="flex flex-wrap justify-center gap-2">
+                {t.hero.layers.map((l, i) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    aria-pressed={selected === i}
+                    onClick={() => control.current?.select(i)}
+                    className="chip h-9 px-3.5 text-[12.5px]"
+                  >
+                    {l.name}
+                  </button>
+                ))}
+              </div>
+              <p className="min-h-[1.25rem] font-mono text-[12px] uppercase tracking-[0.14em] text-[#8a8a8a]" aria-live="polite">
+                {layer ? layer.desc : t.hero.layersLabel}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -1,181 +1,63 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MutableRefObject } from 'react'
 import * as THREE from 'three'
-import { RS_PATH } from './logo'
 
 /*
- * One canvas for the whole hero: a field of dots that ripples like water behind, and a dark chrome
- * sphere in front whose surface carries two interfering waves, one per service. The sphere sits on
- * the element with id="hero-anchor"; the canvas ignores the pointer and listens on the window.
+ * The Resonance window, taken apart. Every layer is cut from the real home-screen screenshot and
+ * floats at its own depth, joined to the window shell by thin guide lines, like an exploded view.
+ * On load the SoundCloud layer flies in from the left and the YouTube Music layer from the right
+ * and both dock into the one library. The pointer turns the stack; clicking a layer (or its chip)
+ * brings it forward. Scrolling assembles the window back into one flat screen.
  * prefers-reduced-motion is deliberately not honoured (see motion.tsx).
  */
 
-const SPHERE_VERT = /* glsl */ `
-  uniform float uTime;
-  uniform float uAmp;
-  uniform vec3 uPointer;
-  uniform float uPointerGain;
-  varying vec3 vNormal;
-  varying vec3 vWorld;
-  varying vec2 vUv;
-  varying float vH;
+const SRC = '/shots/home.jpg'
+const IW = 1424 // the screenshot's size in pixels
+const IH = 821
 
-  const vec3 SRC_A = vec3(-0.80, 0.22, 0.56);
-  const vec3 SRC_B = vec3( 0.80, -0.12, 0.58);
+type LayerDef = { id: string; x: number; y: number; w: number; h: number; z: number; from: number; edge: number }
 
-  float height(vec3 n) {
-    vec3 a = normalize(SRC_A);
-    vec3 b = normalize(SRC_B);
-    float da = acos(clamp(dot(n, a), -1.0, 1.0));
-    float db = acos(clamp(dot(n, b), -1.0, 1.0));
-    float wa = sin(da * 19.0 - uTime * 1.7) / (1.0 + da * 2.4);
-    float wb = sin(db * 19.0 - uTime * 1.9 + 1.2) / (1.0 + db * 2.4);
-    float h = (wa + wb) * 0.5;
-    // the pointer is a tuning fork: the side it points at swells
-    float near = smoothstep(0.2, 1.0, dot(n, normalize(uPointer)));
-    return h * (1.0 + uPointerGain * near);
-  }
+/* crop rectangles in screenshot pixels; z is the exploded depth; from is where it flies in from */
+const LAYERS: LayerDef[] = [
+  { id: 'sidebar', x: 13, y: 12, w: 274, h: 797, z: 0.5, from: 0, edge: 0xffffff },
+  { id: 'search', x: 296, y: 12, w: 746, h: 132, z: 0.82, from: 0, edge: 0xffffff },
+  { id: 'soundcloud', x: 296, y: 150, w: 746, h: 330, z: 1.0, from: -1, edge: 0xff5500 },
+  { id: 'youtube', x: 296, y: 520, w: 746, h: 170, z: 1.0, from: 1, edge: 0xff0033 },
+  { id: 'lyrics', x: 1052, y: 12, w: 362, h: 797, z: 0.66, from: 0, edge: 0xffffff },
+  { id: 'player', x: 308, y: 694, w: 722, h: 106, z: 1.38, from: 0, edge: 0xffffff },
+]
+export const LAYER_IDS = LAYERS.map((l) => l.id)
 
-  vec3 displaced(vec3 n) {
-    return n * (1.0 + uAmp * height(n));
-  }
+const WORLD_W = 4.2
+const PX = WORLD_W / IW // world units per screenshot pixel
 
-  void main() {
-    vec3 n = normalize(position);
-    vec3 t = normalize(cross(n, vec3(0.0, 1.0, 0.013)));
-    vec3 b = cross(n, t);
-    float e = 0.012;
-    vec3 p0 = displaced(n);
-    vec3 p1 = displaced(normalize(n + t * e));
-    vec3 p2 = displaced(normalize(n + b * e));
-    vNormal = normalize(normalMatrix * normalize(cross(p1 - p0, p2 - p0)));
-    vH = height(n);
-    vUv = uv;
-    vec4 world = modelMatrix * vec4(p0, 1.0);
-    vWorld = world.xyz;
-    gl_Position = projectionMatrix * viewMatrix * world;
-  }
-`
-
-const SPHERE_FRAG = /* glsl */ `
-  precision highp float;
-  uniform vec3 uCoral;
-  uniform sampler2D uLogo;
-  uniform float uLogoU;
-  varying vec3 vNormal;
-  varying vec3 vWorld;
-  varying vec2 vUv;
-  varying float vH;
-
-  void main() {
-    vec3 N = normalize(vNormal);
-    vec3 V = normalize(cameraPosition - vWorld);
-    if (dot(N, V) < 0.0) N = -N;
-    vec3 R = reflect(-V, N);
-
-    // a little studio: a soft top box, a coral kicker low on the left, a cold fill on the right
-    float top = pow(max(dot(R, normalize(vec3(0.2, 1.0, 0.5))), 0.0), 7.0);
-    float side = pow(max(dot(R, normalize(vec3(1.0, 0.1, 0.3))), 0.0), 16.0);
-    float kick = pow(max(dot(R, normalize(vec3(-0.9, -0.5, 0.5))), 0.0), 9.0);
-    float horizon = smoothstep(-0.2, 0.9, R.y);
-
-    vec3 col = mix(vec3(0.035), vec3(0.17, 0.17, 0.18), horizon);
-    col += vec3(0.80, 0.82, 0.86) * top * 0.55;
-    col += vec3(0.60, 0.66, 0.75) * side * 0.35;
-    col += uCoral * kick * 0.5;
-
-    float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-    col += uCoral * fres * 0.55;
-
-    // crests glow coral where the two waves reinforce each other
-    float crest = smoothstep(0.35, 1.0, vH);
-    col += uCoral * crest * 0.14;
-
-    // the RS mark, pressed into the front of the sphere
-    vec2 lp = vec2((vUv.x - uLogoU) * 7.0 + 0.5, (vUv.y - 0.5) * 3.5 + 0.5);
-    float inside = step(0.0, lp.x) * step(lp.x, 1.0) * step(0.0, lp.y) * step(lp.y, 1.0);
-    float mark = texture2D(uLogo, lp).a * inside;
-    col = mix(col, uCoral * 0.9, mark * 0.72);
-
-    gl_FragColor = vec4(col, 1.0);
-    #include <colorspace_fragment>
-  }
-`
-
-const BG_VERT = /* glsl */ `
-  void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
-`
-
-const BG_FRAG = /* glsl */ `
-  precision highp float;
-  uniform vec2 uRes;       // in device pixels
-  uniform float uTime;
-  uniform float uDpr;
-  uniform vec2 uSphere;    // sphere centre, device px, y down
-  uniform float uSphereR;
-  uniform vec2 uPointer;   // device px, y down, negative when away
-  uniform float uPointerOn;
-  uniform vec3 uCoral;
-
-  float ring(vec2 p, vec2 c, float k, float speed, float phase, float decay) {
-    float d = length(p - c);
-    return sin(d * k - uTime * speed + phase) * exp(-d * decay);
-  }
-
-  void main() {
-    vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
-    float cell = 24.0 * uDpr;
-    vec2 g = floor(frag / cell);
-    vec2 centre = (g + 0.5) * cell;
-    vec2 off = frag - centre;
-
-    float R = uSphereR;
-    // two sources either side of the sphere: the two services
-    float w = 0.0;
-    w += ring(centre, uSphere + vec2(-0.55 * R, 0.0), 0.021 / uDpr, 1.5, 0.0, 0.0016 / uDpr);
-    w += ring(centre, uSphere + vec2( 0.55 * R, 0.0), 0.021 / uDpr, 1.5, 1.9, 0.0016 / uDpr);
-    // the pointer drops its own small ripples
-    w += uPointerOn * 0.7 * ring(centre, uPointer, 0.05 / uDpr, 3.2, 0.0, 0.0065 / uDpr);
-    w *= 0.62;
-
-    // nothing under the sphere itself, it is drawn on top and would show through its edge
-    float dS = length(centre - uSphere);
-    float clear = smoothstep(R * 0.92, R * 1.35, dS);
-
-    float crest = clamp(w * 0.5 + 0.5, 0.0, 1.0);
-    float radius = (1.1 + 1.9 * crest * crest) * uDpr;
-    float d = length(off);
-    float dotA = 1.0 - smoothstep(radius - 0.8 * uDpr, radius + 0.4 * uDpr, d);
-
-    // soft vignette so the field dies out towards the edges of the hero
-    vec2 uv = frag / uRes;
-    float edge = smoothstep(0.0, 0.12, uv.x) * smoothstep(1.0, 0.88, uv.x) * smoothstep(1.0, 0.72, uv.y);
-
-    float lift = clamp(w, 0.0, 1.0);
-    vec3 grey = vec3(0.62, 0.62, 0.64);
-    vec3 col = mix(grey, uCoral, pow(lift, 1.4) * 0.95);
-    float a = dotA * clear * edge * (0.16 + 0.7 * crest * crest);
-    gl_FragColor = vec4(col, a);
-  }
-`
-
-function logoCanvas() {
-  const c = document.createElement('canvas')
-  c.width = c.height = 512
-  const g = c.getContext('2d')!
-  g.translate(256, 256)
-  g.scale(0.4, 0.4)
-  g.translate(-512, -512)
-  g.fillStyle = '#fff'
-  g.fill(new Path2D(RS_PATH), 'evenodd')
-  return c
+interface Layer {
+  def: LayerDef
+  group: THREE.Group
+  mat: THREE.MeshBasicMaterial
+  edgeMat: THREE.LineBasicMaterial
+  guide: THREE.LineSegments
+  guidePos: Float32Array
+  hx: number
+  hy: number
+  cx: number
+  cy: number
+  lift: number
 }
 
-export default function HeroScene({ onFail }: { onFail?: () => void }) {
+export default function HeroScene({
+  onFail,
+  onSelect,
+  control,
+}: {
+  onFail?: () => void
+  onSelect?: (index: number) => void
+  control?: MutableRefObject<{ select: (i: number) => void; pick: (clientX: number, clientY: number) => void } | null>
+}) {
   const mount = useRef<HTMLDivElement>(null)
-  const failRef = useRef(onFail)
-  failRef.current = onFail
+  const cb = useRef({ onFail, onSelect })
+  cb.current = { onFail, onSelect }
 
   useEffect(() => {
     const el = mount.current
@@ -185,199 +67,223 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
     } catch {
-      failRef.current?.()
+      cb.current.onFail?.()
       return
     }
-
-    const coarse = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2)
-    renderer.setPixelRatio(dpr)
+    const small = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.autoClear = false
     renderer.domElement.style.cssText = 'width:100%;height:100%;display:block'
     el.appendChild(renderer.domElement)
 
-    const coral = new THREE.Color('#ff9b8a')
     const disposables: { dispose: () => void }[] = []
     const track = <T extends { dispose: () => void }>(o: T) => {
       disposables.push(o)
       return o
     }
 
-    /* ---------- background: a full-screen quad drawn first ---------- */
-    const bgScene = new THREE.Scene()
-    const bgCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
-    const bgUniforms = {
-      uRes: { value: new THREE.Vector2(1, 1) },
-      uTime: { value: 0 },
-      uDpr: { value: dpr },
-      uSphere: { value: new THREE.Vector2(0, 0) },
-      uSphereR: { value: 100 },
-      uPointer: { value: new THREE.Vector2(-9999, -9999) },
-      uPointerOn: { value: 0 },
-      uCoral: { value: new THREE.Vector3(coral.r, coral.g, coral.b) },
-    }
-    const bgMat = track(
-      new THREE.ShaderMaterial({
-        vertexShader: BG_VERT,
-        fragmentShader: BG_FRAG,
-        uniforms: bgUniforms,
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-      }),
-    )
-    const bgGeo = track(new THREE.PlaneGeometry(2, 2))
-    bgScene.add(new THREE.Mesh(bgGeo, bgMat))
-
-    /* ---------- the sphere ---------- */
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50)
-    camera.position.set(0, 0, 10)
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60)
+    camera.position.set(0, 0, 9)
 
-    const logoTex = track(new THREE.CanvasTexture(logoCanvas()))
-    logoTex.anisotropy = 8
-    const sphereUniforms = {
-      uTime: { value: 0 },
-      uAmp: { value: 0.034 },
-      uPointer: { value: new THREE.Vector3(0, 0, 1) },
-      uPointerGain: { value: 0 },
-      uCoral: { value: new THREE.Vector3(coral.r, coral.g, coral.b) },
-      uLogo: { value: logoTex },
-      uLogoU: { value: 0.25 },
-    }
-    const sphereMat = track(
-      new THREE.ShaderMaterial({ vertexShader: SPHERE_VERT, fragmentShader: SPHERE_FRAG, uniforms: sphereUniforms }),
+    const stack = new THREE.Group() // turned by pointer and scroll
+    scene.add(stack)
+
+    const base = new THREE.TextureLoader().load(SRC)
+    base.colorSpace = THREE.SRGBColorSpace
+    base.anisotropy = renderer.capabilities.getMaxAnisotropy()
+    base.minFilter = THREE.LinearMipmapLinearFilter
+    disposables.push(base)
+
+    /* the window shell: the whole screenshot, dimmed, with a title bar on top */
+    const shellMat = track(new THREE.MeshBasicMaterial({ map: base, color: 0x3a3a3a, toneMapped: false }))
+    const shell = new THREE.Mesh(track(new THREE.PlaneGeometry(WORLD_W, IH * PX)), shellMat)
+    stack.add(shell)
+    const barH = 0.11
+    const bar = new THREE.Mesh(
+      track(new THREE.PlaneGeometry(WORLD_W, barH)),
+      track(new THREE.MeshBasicMaterial({ color: 0x0d0d0d, toneMapped: false })),
     )
-    const segs = coarse ? 96 : 192
-    const sphereGeo = track(new THREE.SphereGeometry(1, segs, segs))
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat)
-    const holder = new THREE.Group()
-    holder.add(sphere)
-    scene.add(holder)
-
-    /* soft coral halo behind the sphere */
-    const haloCanvas = document.createElement('canvas')
-    haloCanvas.width = haloCanvas.height = 256
-    {
-      const g = haloCanvas.getContext('2d')!
-      const r = g.createRadialGradient(128, 128, 0, 128, 128, 128)
-      r.addColorStop(0, 'rgba(255,155,138,0.34)')
-      r.addColorStop(0.55, 'rgba(255,155,138,0.07)')
-      r.addColorStop(1, 'rgba(255,155,138,0)')
-      g.fillStyle = r
-      g.fillRect(0, 0, 256, 256)
-    }
-    const haloTex = track(new THREE.CanvasTexture(haloCanvas))
-    const haloMat = track(
-      new THREE.MeshBasicMaterial({ map: haloTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
+    bar.position.set(0, (IH * PX) / 2 + barH / 2, 0)
+    stack.add(bar)
+    const shellEdge = new THREE.LineSegments(
+      track(new THREE.EdgesGeometry(track(new THREE.PlaneGeometry(WORLD_W, IH * PX + barH)))),
+      track(new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 })),
     )
-    const haloGeo = track(new THREE.PlaneGeometry(1, 1))
-    const halo = new THREE.Mesh(haloGeo, haloMat)
-    halo.scale.setScalar(4.6)
-    halo.position.z = -1.4
-    holder.add(halo)
+    shellEdge.position.y = barH / 2
+    stack.add(shellEdge)
 
-    /* ---------- layout: the sphere sits on the anchor element ---------- */
+    /* the layers */
+    const layers: Layer[] = LAYERS.map((def) => {
+      const tex = base.clone()
+      tex.repeat.set(def.w / IW, def.h / IH)
+      tex.offset.set(def.x / IW, 1 - (def.y + def.h) / IH)
+      tex.needsUpdate = true
+      disposables.push(tex)
+      const w = def.w * PX
+      const h = def.h * PX
+      const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }))
+      const plane = new THREE.Mesh(track(new THREE.PlaneGeometry(w, h)), mat)
+      plane.userData.index = LAYERS.indexOf(def)
+      const edgeMat = track(new THREE.LineBasicMaterial({ color: def.edge, transparent: true, opacity: 0.55 }))
+      const edge = new THREE.LineSegments(track(new THREE.EdgesGeometry(plane.geometry)), edgeMat)
+      edge.position.z = 0.001
+      const group = new THREE.Group()
+      group.add(plane, edge)
+      const cx = (def.x + def.w / 2 - IW / 2) * PX
+      const cy = -(def.y + def.h / 2 - IH / 2) * PX
+      group.position.set(cx, cy, 0)
+      stack.add(group)
+
+      // four guide lines from the layer's corners straight down to the shell
+      const guidePos = new Float32Array(8 * 3)
+      const gGeo = track(new THREE.BufferGeometry())
+      gGeo.setAttribute('position', new THREE.BufferAttribute(guidePos, 3))
+      const guide = new THREE.LineSegments(
+        gGeo,
+        track(new THREE.LineBasicMaterial({ color: def.edge, transparent: true, opacity: 0.2 })),
+      )
+      guide.frustumCulled = false
+      stack.add(guide)
+      return { def, group, mat, edgeMat, guide, guidePos, hx: w / 2, hy: h / 2, cx, cy, lift: 0 }
+    })
+    const planes = layers.map((l) => l.group.children[0])
+
+    /* ---------- state ---------- */
+    let selected = -1
+    const select = (i: number) => {
+      selected = selected === i ? -1 : i
+      cb.current.onSelect?.(selected)
+    }
+
+    const ray = new THREE.Raycaster()
+    const ndc = new THREE.Vector2()
+    const pick = (clientX: number, clientY: number) => {
+      const box = el.getBoundingClientRect()
+      ndc.set(((clientX - box.left) / box.width) * 2 - 1, -((clientY - box.top) / box.height) * 2 + 1)
+      ray.setFromCamera(ndc, camera)
+      const hit = ray.intersectObjects(planes, false)[0]
+      if (hit) select(hit.object.userData.index as number)
+      else if (selected !== -1) select(selected)
+    }
+    if (control) control.current = { select, pick }
+
+    /* ---------- layout on the anchor ---------- */
     let wPx = 1
     let hPx = 1
-    const anchorPx = { x: 0, y: 0, r: 100 }
+    const anchor = { x: 0, y: 0, w: 400, h: 400 }
     const layout = () => {
       const box = el.getBoundingClientRect()
       wPx = Math.max(1, Math.round(box.width))
       hPx = Math.max(1, Math.round(box.height))
       renderer.setSize(wPx, hPx, false)
-      camera.aspect = wPx / hPx
-      camera.updateProjectionMatrix()
-      bgUniforms.uRes.value.set(wPx * dpr, hPx * dpr)
-
       const a = document.getElementById('hero-anchor')?.getBoundingClientRect()
-      const ax = a ? a.left + a.width / 2 - box.left : wPx * 0.72
-      const ay = a ? a.top + a.height / 2 - box.top : hPx * 0.5
-      const r = a ? Math.min(a.width, a.height) * 0.36 : Math.min(wPx, hPx) * 0.3
-      anchorPx.x = ax
-      anchorPx.y = ay
-      anchorPx.r = Math.max(60, r)
-
+      anchor.w = a ? a.width : wPx * 0.5
+      anchor.h = a ? a.height : hPx * 0.6
+      anchor.x = a ? a.left - box.left + a.width / 2 : wPx * 0.72
+      anchor.y = a ? a.top - box.top + a.height * 0.46 : hPx * 0.5
+      camera.aspect = wPx / hPx
+      camera.setViewOffset(wPx, hPx, -(anchor.x - wPx / 2), -(anchor.y - hPx / 2), wPx, hPx)
+      // the flat window should fill the anchor's width; the exploded one is allowed to spill out
       const visH = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)
-      const perPx = visH / hPx
-      holder.position.set((ax - wPx / 2) * perPx, -(ay - hPx / 2) * perPx, 0)
-      holder.scale.setScalar(anchorPx.r * perPx)
-      bgUniforms.uSphere.value.set(ax * dpr, ay * dpr)
-      bgUniforms.uSphereR.value = anchorPx.r * dpr
+      const pxPerWorld = hPx / visH
+      camera.zoom = Math.min((anchor.w * 0.98) / (WORLD_W * pxPerWorld), (anchor.h * 0.82) / ((IH * PX + barH) * pxPerWorld))
+      camera.updateProjectionMatrix()
     }
 
-    /* ---------- pointer and scroll ---------- */
-    const pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0, ton: 0, px: -9999, py: -9999 }
+    /* ---------- pointer ---------- */
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0 }
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return
       const box = el.getBoundingClientRect()
-      const x = e.clientX - box.left
-      const y = e.clientY - box.top
-      const inside = y >= 0 && y <= box.height
-      pointer.px = x
-      pointer.py = y
-      pointer.ton = inside ? 1 : 0
-      pointer.tx = Math.max(-1, Math.min(1, (x - anchorPx.x) / (wPx * 0.5)))
-      pointer.ty = Math.max(-1, Math.min(1, (y - anchorPx.y) / (hPx * 0.5)))
+      pointer.tx = Math.max(-1, Math.min(1, (e.clientX - box.left - anchor.x) / (wPx * 0.5)))
+      pointer.ty = Math.max(-1, Math.min(1, (e.clientY - box.top - anchor.y) / (hPx * 0.5)))
     }
     window.addEventListener('pointermove', onMove, { passive: true })
 
     let visible = true
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0 })
     io.observe(el)
-
     const ro = new ResizeObserver(layout)
     ro.observe(el)
-    const anchor = document.getElementById('hero-anchor')
-    if (anchor) ro.observe(anchor)
+    const anchorEl = document.getElementById('hero-anchor')
+    if (anchorEl) ro.observe(anchorEl)
     layout()
 
     const clock = new THREE.Clock()
-    let intro = 0
     let raf = 0
-    const easeOut = (t: number) => 1 - Math.pow(1 - Math.min(1, t), 3)
+    let assembled = 0
+    const easeOut = (t: number) => 1 - Math.pow(1 - THREE.MathUtils.clamp(t, 0, 1), 3)
+    const easeInOut = (t: number) => {
+      const x = THREE.MathUtils.clamp(t, 0, 1)
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+    }
 
     const tick = () => {
       raf = requestAnimationFrame(tick)
       if (!visible || document.hidden) return
       const dt = Math.min(clock.getDelta(), 0.05)
       const t = clock.elapsedTime
-      intro = Math.min(1, intro + dt / 1.6)
-      const k = easeOut(intro)
 
-      pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 4)
-      pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 4)
-      pointer.on += (pointer.ton - pointer.on) * Math.min(1, dt * 3)
+      pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 3)
+      pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 3)
 
-      const scroll = Math.min(1, window.scrollY / (window.innerHeight * 0.9))
+      // 0 = taken apart, 1 = one flat window; driven by how far the hero has scrolled away
+      // assembles once the window itself rises past the top eighth of the screen, so on a phone,
+      // where it sits under the headline, you still see it taken apart as it scrolls into view
+      const vh = window.innerHeight
+      const top = anchorEl ? anchorEl.getBoundingClientRect().top : vh * 0.2 - window.scrollY
+      const scroll = THREE.MathUtils.clamp((vh * 0.12 - top) / (vh * 0.36), 0, 1)
+      assembled += (easeInOut(scroll) - assembled) * Math.min(1, dt * 8)
+      const apart = 1 - assembled
 
-      sphereUniforms.uTime.value = t
-      sphereUniforms.uAmp.value = 0.034 * (0.3 + 0.7 * k)
-      sphereUniforms.uPointer.value.set(pointer.x * 1.4, -pointer.y * 1.4, 1)
-      sphereUniforms.uPointerGain.value = 0.9 * pointer.on
+      // the whole stack turns three-quarters on, follows the pointer, and squares up as it assembles
+      const intro = easeOut(t / 1.8)
+      stack.rotation.y = (-0.52 + pointer.x * 0.2) * apart + (1 - intro) * -0.4
+      stack.rotation.x = (0.3 - pointer.y * 0.12) * apart
+      stack.rotation.z = 0.04 * apart
+      stack.position.y = Math.sin(t * 0.6) * 0.04 * apart
 
-      // the sphere turns a little towards the pointer and with the scroll, never away from the mark
-      holder.rotation.y = pointer.x * 0.32 + scroll * 0.5 + (1 - k) * 0.9
-      holder.rotation.x = pointer.y * 0.18 - scroll * 0.25
-      const base = anchorPx.r
-      holder.scale.setScalar((base * (0.82 + 0.18 * k) * (visHeightPerPx())) )
+      layers.forEach((L, i) => {
+        // each layer arrives in turn; the two services fly in from opposite sides
+        const arrive = easeOut((t - 0.25 - i * 0.12) / 1.1)
+        const fly = (1 - arrive) * L.def.from * 4.5
+        const rise = (1 - arrive) * (L.def.from === 0 ? 1.6 : 0)
+        const liftTarget = selected === i ? 0.55 : 0
+        L.lift += (liftTarget - L.lift) * Math.min(1, dt * 7)
+        // a slow breathing so the exploded view never sits dead still
+        const breathe = Math.sin(t * 0.9 + i * 1.3) * 0.035
+        const z = (L.def.z + breathe + L.lift) * apart + 0.004 * (i + 1) + rise
+        L.group.position.set(L.cx + fly, L.cy, z)
+        // the others fade back while one is picked, but the assembled window is always whole
+        const dim = selected === -1 || selected === i ? 1 : 1 - 0.55 * apart
+        const op = arrive * dim
+        L.mat.opacity = op
+        L.edgeMat.opacity = (selected === i ? 1 : 0.45) * arrive * (0.35 + 0.65 * apart)
 
-      bgUniforms.uTime.value = t
-      bgUniforms.uPointer.value.set(pointer.px * dpr, pointer.py * dpr)
-      bgUniforms.uPointerOn.value = pointer.on
+        // guide lines from the corners down to the shell
+        const p = L.guidePos
+        const corners = [
+          [-L.hx, -L.hy],
+          [L.hx, -L.hy],
+          [L.hx, L.hy],
+          [-L.hx, L.hy],
+        ]
+        corners.forEach(([dx, dy], k) => {
+          const o = k * 6
+          p[o] = L.cx + dx + fly
+          p[o + 1] = L.cy + dy
+          p[o + 2] = z
+          p[o + 3] = L.cx + dx
+          p[o + 4] = L.cy + dy
+          p[o + 5] = 0
+        })
+        L.guide.geometry.attributes.position.needsUpdate = true
+        ;(L.guide.material as THREE.LineBasicMaterial).opacity = 0.22 * apart * arrive
+      })
+      shellMat.color.setScalar(0.23 + 0.77 * assembled)
 
-      renderer.clear()
-      renderer.render(bgScene, bgCam)
-      renderer.clearDepth()
       renderer.render(scene, camera)
     }
-
-    function visHeightPerPx() {
-      const visH = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)
-      return visH / hPx
-    }
-
     raf = requestAnimationFrame(tick)
 
     return () => {
@@ -385,11 +291,12 @@ export default function HeroScene({ onFail }: { onFail?: () => void }) {
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', onMove)
+      if (control) control.current = null
       disposables.forEach((d) => d.dispose())
       renderer.dispose()
       renderer.domElement.remove()
     }
-  }, [])
+  }, [control])
 
   return <div ref={mount} className="absolute inset-0" />
 }
