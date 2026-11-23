@@ -1,0 +1,6 @@
+{
+  "name": "Resonance",
+  "description": "A fast, native desktop music player for YouTube Music, SoundCloud, and local audio files, built with Tauri 2 and Rust.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

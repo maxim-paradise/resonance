@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Material 3 Expressive Dark Tonal Tokens */
+  --color-m3-on-surface: #f4f6f7;
+  --color-m3-on-surface-variant: #c7d0d4;
+  --color-m3-outline-variant: rgba(255, 255, 255, 0.12);
+  --color-m3-primary-container: #bcebf0;
+  --color-m3-on-primary-container: #05292e;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-m3-on-surface);
+    background-color: #0b0e11;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+}
+
+.material-symbols-rounded {
+  font-family: "Material Symbols Rounded";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  transition:
+    font-variation-settings 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* M3 Expressive Morphing Interactive Shape */
+.m3-expressive-btn {
+  border-radius: 24px;
+  transition:
+    border-radius 180ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 180ms cubic-bezier(0.2, 0, 0, 1),
+    color 180ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.m3-expressive-btn:hover {
+  border-radius: 16px;
+}
+
+.m3-expressive-btn:active {
+  border-radius: 12px;
+}
+
+@keyframes wave-sweep-teal {
+  0%,
+  100% {
+    transform: translate3d(-16%, 12%, 0) rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: translate3d(20%, -16%, 0) rotate(8deg) scale(1.16);
+  }
+}
+
+@keyframes wave-sweep-cyan {
+  0%,
+  100% {
+    transform: translate3d(14%, -10%, 0) rotate(5deg) scale(1.06);
+  }
+  50% {
+    transform: translate3d(-18%, 14%, 0) rotate(-8deg) scale(0.96);
+  }
+}
+
+@keyframes wave-sweep-slate {
+  0%,
+  100% {
+    transform: translate3d(16%, 10%, 0) rotate(-4deg) scale(1);
+  }
+  50% {
+    transform: translate3d(-18%, -12%, 0) rotate(7deg) scale(1.14);
+  }
+}
+
+@keyframes wave-sweep-dark {
+  0%,
+  100% {
+    transform: translate3d(-10%, -10%, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(15%, 10%, 0) scale(0.95);
+  }
+}
+
+.ambient-gradient-base {
+  background: linear-gradient(135deg, #0d1216 0%, #0b0e11 55%, #07090b 100%);
+}
+
+.ambient-gradient-cyan {
+  background: radial-gradient(
+    ellipse 66% 48% at 24% 20%,
+    rgba(38, 108, 126, 0.42) 0%,
+    rgba(22, 68, 82, 0.24) 38%,
+    transparent 74%
+  );
+  animation: wave-sweep-cyan 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+.ambient-gradient-teal {
+  background: radial-gradient(
+    ellipse 70% 50% at 22% 80%,
+    rgba(18, 152, 126, 0.45) 0%,
+    rgba(12, 96, 80, 0.28) 38%,
+    transparent 74%
+  );
+  animation: wave-sweep-teal 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.ambient-gradient-slate {
+  background: radial-gradient(
+    ellipse 62% 44% at 76% 38%,
+    rgba(110, 124, 134, 0.3) 0%,
+    rgba(44, 68, 76, 0.18) 42%,
+    transparent 76%
+  );
+  animation: wave-sweep-slate 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.ambient-gradient-trough {
+  background: radial-gradient(
+    ellipse 60% 52% at 74% 76%,
+    rgba(7, 9, 12, 0.9) 0%,
+    rgba(14, 17, 22, 0.6) 48%,
+    transparent 78%
+  );
+  animation: wave-sweep-dark 15s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
