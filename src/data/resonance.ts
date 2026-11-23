@@ -1,10 +1,10 @@
 import appIcon from '@/src/assets/repo/app-icon.png';
-import featureLyrics from '@/src/assets/repo/feature-lyrics.png';
-import featurePlayback from '@/src/assets/repo/feature-playback.png';
-import featureSources from '@/src/assets/repo/feature-sources.png';
+import featureLyrics from '@/src/assets/repo/feature-lyrics.jpg';
+import featurePlayback from '@/src/assets/repo/feature-playback.jpg';
+import featureSources from '@/src/assets/repo/feature-sources.jpg';
 import rsMark from '@/src/assets/repo/rs-mark.png';
-import screenshotLibrary from '@/src/assets/repo/screenshot-1.png';
-import screenshotLyrics from '@/src/assets/repo/screenshot-2.png';
+import screenshotLibrary from '@/src/assets/repo/screenshot-1.jpg';
+import screenshotLyrics from '@/src/assets/repo/screenshot-2.jpg';
 
 export const REPO_URL = 'https://github.com/BohdanKrakoviatskyi/Resonance';
 export const RELEASES_URL = `${REPO_URL}/releases`;
@@ -42,7 +42,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     screenshot: featureSources,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
-      'Resonance sidebar and Liked songs playlist showing YouTube Music and SoundCloud integration',
+      'Resonance window with the Favorites playlist of 216 tracks next to the synced lyrics panel',
     items: [
       {
         icon: 'music_note',
@@ -70,7 +70,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     screenshot: featurePlayback,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
-      'Resonance playback bar with expressive waveform scrubber, queue controls, and track list',
+      'Resonance player bar with waveform scrubber and transport controls under the play queue',
     items: [
       {
         icon: 'waves',
@@ -99,7 +99,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     screenshot: featureLyrics,
     fullScreenshot: screenshotLyrics,
     screenshotAlt:
-      'Resonance fullscreen playback showing album cover, squiggly scrubber, and synced lyrics',
+      'Resonance fullscreen playback with the album cover and word-by-word highlighted lyrics',
     items: [
       {
         icon: 'mic',
@@ -126,7 +126,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     screenshot: screenshotLibrary,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
-      'Full Resonance desktop window showing cover-derived glass colors and lyrics panel',
+      'Full Resonance desktop window showing cover-derived glass colors and the now-playing panel',
     items: [
       {
         icon: 'code',
