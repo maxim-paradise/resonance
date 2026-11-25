@@ -1,0 +1,28 @@
+# Resonance
+
+> Resonance is a free, open-source desktop music player for YouTube Music, SoundCloud, and local audio files. It is built with Tauri 2 and a Rust core instead of Electron, so it installs in under 20 MB and uses no middleman server.
+
+## What Resonance does
+
+- Plays YouTube Music and SoundCloud libraries after signing in, with tokens stored in the OS keychain.
+- Indexes local audio folders (MP3, FLAC, WAV, OGG/Opus, M4A/AAC) with tags and embedded covers.
+- Shows synced word-by-word lyrics, including custom Enhanced LRC files and per-track timing offsets.
+- Offers crossfade with LUFS normalization, a parametric equalizer, playback speed, reverb, and Nightcore modes.
+- Imports playlists from Spotify, Apple Music, Deezer, and Yandex Music.
+- Supports dynamic cover-art themes, custom CSS, global shortcuts, Discord Rich Presence, and Last.fm scrobbling.
+
+## Platforms
+
+Windows 10/11 (.exe, .msi), macOS on Apple Silicon (.dmg), and Linux (.AppImage, .deb, .rpm). There is no mobile or web player; Resonance is a desktop application.
+
+## Links
+
+- [Resonance product site](https://music.rell.tech/): features, architecture notes, and platform downloads.
+- [Latest release downloads](https://github.com/BohdanKrakoviatskyi/Resonance/releases): every installer for the current version.
+- [Source repository](https://github.com/BohdanKrakoviatskyi/Resonance): the full Tauri and Rust codebase under the open-source license.
+- [Build from source](https://github.com/BohdanKrakoviatskyi/Resonance/releases): `git clone`, then `npm install` and `npx tauri build`.
+- [Issue tracker](https://github.com/BohdanKrakoviatskyi/Resonance/issues): bug reports and feature requests.
+
+## Notes for agents
+
+Resonance has no web API, no account system, and no telemetry. The only machine-readable resources are this file and the site itself at https://music.rell.tech/. Downloads link directly to GitHub release assets.

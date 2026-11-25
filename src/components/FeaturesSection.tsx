@@ -65,8 +65,13 @@ export function FeaturesSection() {
                     <div className="aspect-[16/10] w-full overflow-hidden">
                       <img
                         src={group.screenshot}
+                        srcSet={`${group.screenshotSmall} 800w, ${group.screenshot} 1440w`}
+                        sizes="(min-width: 1024px) 620px, (min-width: 640px) 88vw, 92vw"
                         alt={group.screenshotAlt}
-                        referrerPolicy="no-referrer"
+                        width={1440}
+                        height={900}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                       />
                     </div>
@@ -168,7 +173,9 @@ export function FeaturesSection() {
               <img
                 src={lightboxGroup.fullScreenshot}
                 alt={lightboxGroup.screenshotAlt}
-                referrerPolicy="no-referrer"
+                width={1600}
+                height={1000}
+                decoding="async"
                 className="max-h-[82vh] w-full rounded-2xl border border-white/[0.16] bg-stone-950 object-contain shadow-2xl"
               />
             </motion.div>

@@ -1,3 +1,66 @@
+import {
+  ArrowUpRight,
+  AudioLines,
+  Captions,
+  Check,
+  Clock,
+  CloudDownload,
+  Code,
+  Copy,
+  Cpu,
+  Download,
+  FolderOpen,
+  Headphones,
+  KeyRound,
+  Keyboard,
+  Laptop,
+  LibraryBig,
+  Maximize2,
+  Mic,
+  MicVocal,
+  Monitor,
+  MonitorSmartphone,
+  Music,
+  Palette,
+  RefreshCw,
+  SlidersHorizontal,
+  Terminal,
+  Waves,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+
+const ICONS: Record<string, LucideIcon> = {
+  arrow_outward: ArrowUpRight,
+  check: Check,
+  close: X,
+  code: Code,
+  content_copy: Copy,
+  desktop_windows: Monitor,
+  devices: MonitorSmartphone,
+  download: Download,
+  equalizer: SlidersHorizontal,
+  folder_open: FolderOpen,
+  graphic_eq: AudioLines,
+  headphones: Headphones,
+  key: KeyRound,
+  keyboard: Keyboard,
+  laptop_mac: Laptop,
+  library_music: LibraryBig,
+  lyrics: MicVocal,
+  memory: Cpu,
+  mic: Mic,
+  music_note: Music,
+  offline_pin: CloudDownload,
+  open_in_full: Maximize2,
+  palette: Palette,
+  schedule: Clock,
+  subtitles: Captions,
+  sync: RefreshCw,
+  terminal: Terminal,
+  waves: Waves,
+};
+
 interface MaterialIconProps {
   name: string;
   filled?: boolean;
@@ -6,25 +69,15 @@ interface MaterialIconProps {
   className?: string;
 }
 
-export function MaterialIcon({
-  name,
-  filled = false,
-  size = 20,
-  weight = 450,
-  className = '',
-}: MaterialIconProps) {
+export function MaterialIcon({name, size = 20, className = ''}: MaterialIconProps) {
+  const Icon = ICONS[name] ?? Waves;
   return (
-    <span
+    <Icon
       aria-hidden="true"
-      className={`material-symbols-rounded select-none ${className}`}
-      style={{
-        fontSize: `${size}px`,
-        width: `${size}px`,
-        height: `${size}px`,
-        fontVariationSettings: `'FILL' ${filled ? 1 : 0}, 'wght' ${weight}, 'GRAD' 0, 'opsz' ${size}`,
-      }}
-    >
-      {name}
-    </span>
+      focusable="false"
+      size={size}
+      strokeWidth={1.85}
+      className={`shrink-0 ${className}`}
+    />
   );
 }

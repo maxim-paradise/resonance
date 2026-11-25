@@ -1,11 +1,18 @@
 import {MotionConfig, motion} from 'motion/react';
+import {useEffect, useState} from 'react';
 import {ArchitectureSection} from '@/src/components/ArchitectureSection';
 import {DownloadSection} from '@/src/components/DownloadSection';
 import {FeaturesSection} from '@/src/components/FeaturesSection';
 import {MaterialIcon} from '@/src/components/MaterialIcon';
 import {Navbar} from '@/src/components/Navbar';
 import {SandLogoTransition} from '@/src/components/SandLogoTransition';
-import {BRAND_ASSETS, RELEASES_URL, REPO_URL, detectClientPlatform} from '@/src/data/resonance';
+import {
+  BRAND_ASSETS,
+  RELEASES_URL,
+  REPO_URL,
+  detectClientPlatform,
+  type PlatformKey,
+} from '@/src/data/resonance';
 
 const EXPRESSIVE_SPRING = {type: 'spring' as const, stiffness: 460, damping: 34, mass: 0.85};
 
@@ -16,7 +23,11 @@ const PLATFORM_NAMES = {
 } as const;
 
 export default function App() {
-  const detectedPlatform = detectClientPlatform();
+  const [detectedPlatform, setDetectedPlatform] = useState<PlatformKey>('macos');
+
+  useEffect(() => {
+    setDetectedPlatform(detectClientPlatform());
+  }, []);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -38,12 +49,7 @@ export default function App() {
           {/* 1. Open Hero: App Name Title + Short Description */}
           <section aria-labelledby="hero-heading" className="pb-6 pt-20 sm:pb-10 sm:pt-28">
             <div className="mx-auto max-w-6xl px-6">
-              <motion.div
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={EXPRESSIVE_SPRING}
-                className="max-w-3xl"
-              >
+              <div className="max-w-3xl">
                 <span className="font-mono text-sm font-medium tabular-nums text-[#8CE8D6]">
                   v0.17.1
                 </span>
@@ -86,7 +92,7 @@ export default function App() {
                     <MaterialIcon name="arrow_outward" size={18} weight={500} />
                   </motion.a>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </section>
 
@@ -109,7 +115,10 @@ export default function App() {
               <img
                 src={BRAND_ASSETS.appIcon}
                 alt="Resonance application icon"
-                referrerPolicy="no-referrer"
+                width={256}
+                height={256}
+                loading="lazy"
+                decoding="async"
                 className="h-8 w-8 rounded-xl border border-white/[0.14] bg-white/[0.08] object-contain p-1"
               />
               <div className="text-sm text-[#C7D0D4]">

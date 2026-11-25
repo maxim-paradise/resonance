@@ -1,0 +1,18 @@
+{
+  "specVersion": "1.0",
+  "entries": [
+    {
+      "identifier": "urn:air:music.rell.tech:site:agent-guide",
+      "displayName": "Resonance agent guide",
+      "description": "Machine-readable overview of the Resonance desktop music player: supported platforms, features, download links, and the source repository.",
+      "type": "text/markdown; profile=\"urn:air:agent-skills\"",
+      "url": "https://music.rell.tech/llms.txt",
+      "representativeQueries": [
+        "Where can I download the Resonance desktop music player?",
+        "Is there a native music player for YouTube Music and SoundCloud?",
+        "Does Resonance support synced lyrics and an equalizer?",
+        "How do I build Resonance from source?"
+      ]
+    }
+  ]
+}

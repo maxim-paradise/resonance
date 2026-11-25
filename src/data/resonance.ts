@@ -1,10 +1,15 @@
-import appIcon from '@/src/assets/repo/app-icon.png';
-import featureLyrics from '@/src/assets/repo/feature-lyrics.jpg';
-import featurePlayback from '@/src/assets/repo/feature-playback.jpg';
-import featureSources from '@/src/assets/repo/feature-sources.jpg';
-import rsMark from '@/src/assets/repo/rs-mark.png';
-import screenshotLibrary from '@/src/assets/repo/screenshot-1.jpg';
-import screenshotLyrics from '@/src/assets/repo/screenshot-2.jpg';
+import appIcon from '@/src/assets/repo/app-icon.webp';
+import featureLyricsSmall from '@/src/assets/repo/feature-lyrics-800.webp';
+import featureLyrics from '@/src/assets/repo/feature-lyrics.webp';
+import featurePlaybackSmall from '@/src/assets/repo/feature-playback-800.webp';
+import featurePlayback from '@/src/assets/repo/feature-playback.webp';
+import featureSourcesSmall from '@/src/assets/repo/feature-sources-800.webp';
+import featureSources from '@/src/assets/repo/feature-sources.webp';
+import rsMarkSmall from '@/src/assets/repo/rs-mark-64.webp';
+import rsMark from '@/src/assets/repo/rs-mark.webp';
+import screenshotLibrarySmall from '@/src/assets/repo/screenshot-1-800.webp';
+import screenshotLibrary from '@/src/assets/repo/screenshot-1.webp';
+import screenshotLyrics from '@/src/assets/repo/screenshot-2.webp';
 
 export const REPO_URL = 'https://github.com/BohdanKrakoviatskyi/Resonance';
 export const RELEASES_URL = `${REPO_URL}/releases`;
@@ -14,6 +19,7 @@ export const LATEST_RELEASE_API =
 export const BRAND_ASSETS = {
   appIcon,
   rsMark,
+  rsMarkSmall,
 };
 
 export type FeatureCategoryId = 'sources' | 'playback' | 'lyrics' | 'customization';
@@ -24,6 +30,7 @@ export interface FeatureGroup {
   title: string;
   summary: string;
   screenshot: string;
+  screenshotSmall: string;
   fullScreenshot: string;
   screenshotAlt: string;
   items: {
@@ -40,6 +47,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     title: 'Sources & Playlist Import',
     summary: 'YouTube Music, SoundCloud, and local audio folders in one sidebar.',
     screenshot: featureSources,
+    screenshotSmall: featureSourcesSmall,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
       'Resonance window with the Favorites playlist of 216 tracks next to the synced lyrics panel',
@@ -68,6 +76,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     title: 'Playback & Audio Processing',
     summary: 'Crossfades, LUFS loudness limits, parametric EQ, effects, and offline mode.',
     screenshot: featurePlayback,
+    screenshotSmall: featurePlaybackSmall,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
       'Resonance player bar with waveform scrubber and transport controls under the play queue',
@@ -97,6 +106,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     title: 'Synced Lyrics & Karaoke',
     summary: 'Word-by-word highlighting, custom .lrc files, and per-track timing shift.',
     screenshot: featureLyrics,
+    screenshotSmall: featureLyricsSmall,
     fullScreenshot: screenshotLyrics,
     screenshotAlt:
       'Resonance fullscreen playback with the album cover and word-by-word highlighted lyrics',
@@ -124,6 +134,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     title: 'Look, Feel & Integrations',
     summary: 'Cover-art themes, custom CSS, global shortcuts, Discord, and Last.fm.',
     screenshot: screenshotLibrary,
+    screenshotSmall: screenshotLibrarySmall,
     fullScreenshot: screenshotLibrary,
     screenshotAlt:
       'Full Resonance desktop window showing cover-derived glass colors and the now-playing panel',

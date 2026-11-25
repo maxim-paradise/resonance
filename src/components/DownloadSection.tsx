@@ -149,9 +149,16 @@ function parseReleaseAssets(payload: GitHubReleaseResponse): ReleaseData | null 
 }
 
 export function DownloadSection() {
-  const [platform, setPlatform] = useState<PlatformKey>(() => detectClientPlatform());
+  const [platform, setPlatform] = useState<PlatformKey>('macos');
+  const [detectedPlatform, setDetectedPlatform] = useState<PlatformKey>('macos');
   const [release, setRelease] = useState<ReleaseData>(DEFAULT_RELEASE);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const detected = detectClientPlatform();
+    setDetectedPlatform(detected);
+    setPlatform(detected);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -186,7 +193,7 @@ export function DownloadSection() {
 
   const activeAssets = release.platforms[platform];
   const detectedPlatformLabel =
-    PLATFORM_OPTIONS.find((item) => item.key === detectClientPlatform())?.label ?? 'macOS';
+    PLATFORM_OPTIONS.find((item) => item.key === detectedPlatform)?.label ?? 'macOS';
 
   return (
     <section

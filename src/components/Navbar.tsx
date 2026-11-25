@@ -23,10 +23,11 @@ export function Navbar() {
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.16] bg-white/[0.10] p-1.5 shadow-xs">
             <img
-              src={BRAND_ASSETS.rsMark}
+              src={BRAND_ASSETS.rsMarkSmall}
               alt=""
               aria-hidden="true"
-              referrerPolicy="no-referrer"
+              width={64}
+              height={45}
               className="h-full w-full object-contain"
             />
           </span>

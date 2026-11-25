@@ -59,6 +59,7 @@ export function SandLogoTransition() {
     let height = 0;
     let rafId = 0;
     let isDisposed = false;
+    let inView = false;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -251,17 +252,42 @@ export function SandLogoTransition() {
         }
       }
 
-      if (!prefersReducedMotion) {
-        rafId = window.requestAnimationFrame(drawFrame);
-      }
+      rafId = !prefersReducedMotion && inView ? window.requestAnimationFrame(drawFrame) : 0;
     };
 
-    rafId = window.requestAnimationFrame(drawFrame);
+    const ensureFrame = () => {
+      if (isDisposed || rafId || !inView) return;
+      rafId = window.requestAnimationFrame(drawFrame);
+    };
+
+    const stopFrame = () => {
+      if (!rafId) return;
+      window.cancelAnimationFrame(rafId);
+      rafId = 0;
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inView = entries.some((entry) => entry.isIntersecting);
+        if (inView) ensureFrame();
+        else stopFrame();
+      },
+      {rootMargin: '240px 0px'},
+    );
+    observer.observe(canvas);
+
+    const handleVisibility = () => {
+      if (document.hidden) stopFrame();
+      else ensureFrame();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       isDisposed = true;
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('resize', resize);
-      if (rafId) window.cancelAnimationFrame(rafId);
+      stopFrame();
     };
   }, []);
 
